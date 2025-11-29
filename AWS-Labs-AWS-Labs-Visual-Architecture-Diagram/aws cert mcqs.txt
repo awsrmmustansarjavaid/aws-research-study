@@ -1,0 +1,161 @@
+1.Can I detach the primary (eth0) network interface when the instance is running 
+or stopped?
+A. Yes, You can.
+B. You cannot
+C. Depends on the state of the interface at the time
+
+2.By default what are ENIs that are automatically created and attached to 
+instances using the EC2 console set to do when the attached instance terminates?
+A. Remain as is
+B. Terminate
+C. Hibernate
+D. Pause
+
+3.Select the incorrect statement
+A. In Amazon EC2, the private IP addresses only returned to Amazon EC2 when the
+   instance is stopped or terminated
+B. In Amazon VPC, an instance retains its private IP addresses when the instance 
+   is stopped.
+C. In Amazon VPC, an instance does NOT retain its private IP addresses when the 
+   instance is stopped
+D. In Amazon EC2, the private IP address is associated exclusively with the 
+   instance for its lifetime
+
+4.To ensure failover capabilities, consider using a _____ for incoming traffic 
+  on a network interface.
+A. primary public IP
+B. secondary private IP
+C. secondary public IP
+D. add on secondary IP
+
+5.A user has launched an EC2 Windows instance from an instance store backed AMI. 
+The user wants to convert the AMI to an EBS backed AMI. How can the user convert 
+it?
+A. Attach an EBS volume to the instance and unbundle all the AMI bundled data 
+   inside the EBS
+B. A Windows based instance store backed AMI cannot be converted to an EBS 
+   backed AMI
+C. It is not possible to convert an instance store backed AMI to an EBS backed 
+   AMI
+D. Attach an EBS volume and use the copy command to copy all the ephemeral 
+   content to the EBS Volume
+
+6.A user has launched two EBS backed EC2 instances in the US-East-1a region. 
+ The user wants to change the zone of one of the instances. How can the user 
+ change it?
+A. Stop one of the instances and change the availability zone
+B. The zone can only be modified using the AWS CLI
+C. From the AWS EC2 console, select the Actions – > Change zones and specify 
+   new zone
+D. Create an AMI of the running instance and launch the instance in a separate 
+   AZ
+
+7. A user has launched an EC2 instance from an instance store backed AMI. 
+   The user has attached an additional instance store volume to the instance. 
+   The user wants to create an AMI from the running instance. Will the AMI have 
+   the additional instance store volume data?
+A. Yes, the block device mapping will have information about the additional 
+   instance store volume
+B. No, since the instance store backed AMI can have only the root volume bundled
+C. It is not possible to attach an additional instance store volume to the 
+   existing instance store backed AMI instance
+D. No, since this is ephemeral storage it will not be a part of the AMI
+
+8. A user has launched an EC2 instance from an instance store backed AMI. 
+   If the user restarts the instance, what will happen to the ephemeral 
+   storage data? 
+A. All the data will be erased but the ephemeral storage will stay connected 
+B. All data will be erased and the ephemeral storage is released 
+C. It is not possible to restart an instance launched from an instance store 
+   backed AMI 
+D. The data is preserved
+
+9.In order to optimize performance for a compute cluster that requires low 
+inter-node latency, which feature in the following list should you use?
+A. AWS Direct Connect
+B. Cluster Placement Groups
+C. VPC private subnets
+D. EC2 Dedicated Instances
+E. Multiple Availability Zones
+
+10.A user has created a web application with Auto Scaling. The user is regularly
+   monitoring the application and he observed that the traffic is highest on 
+  Thursday and Friday between 8 AM to 6 PM. What is the best solution to handle 
+  scaling in this case?
+A. Add a new instance manually by 8 AM Thursday and terminate the same by 6 PM 
+  Friday
+B. Schedule Auto Scaling to scale up by 8 AM Thursday and scale down after 6 PM 
+   on Friday
+C. Schedule a policy which may scale up every day at 8 AM and scales down by 
+  6 PM
+D. Configure a batch process to add a instance by 8 AM and remove it by Friday 
+  6 PM
+
+11. A user has hosted an application on EC2 instances. The EC2 instances are 
+   configured with ELB and Auto Scaling. The application server session time out 
+   is 2 hours. The user wants to configure connection draining to ensure that 
+   all in-flight requests are supported by ELB even though the instance is being 
+   deregistered. What time out period should the user specify for connection 
+   draining?
+A. 5 minutes
+B. 1 hour 
+D. 30 minutes
+C. 2 hours
+
+12. An organization has configured Auto Scaling for hosting their application. 
+    The system admin wants to understand the Auto Scaling health check process. 
+   If the instance is unhealthy, Auto Scaling launches an instance and terminates 
+   the unhealthy instance. What is the order execution?
+A. Auto Scaling launches a new instance first and then terminates the unhealthy 
+   instance
+B. Auto Scaling performs the launch and terminate processes in a random order
+C. Auto Scaling launches and terminates the instances simultaneously
+D. Auto Scaling terminates the instance first and then launches a new instance
+
+13. You have started a new job and are reviewing your company’s infrastructure on 
+   AWS. You notice one web application where they have an Elastic Load Balancer 
+   in front of web instances in an Auto Scaling Group. When you check the metrics
+  for the ELB in CloudWatch you see four healthy instances in Availability Zone 
+  (AZ) A and zero in AZ B. There are zero unhealthy instances. What do you need
+  to fix to balance the instances across AZs?
+A. Set the ELB to only be attached to another AZ
+B. Make sure Auto Scaling is configured to launch in both AZs
+C. Make sure your AMI is available in both AZs
+D. Make sure the maximum size of the Auto Scaling Group is greater than 4
+
+14.A company wants to organize the contents of multiple websites in managed file 
+  storage. The company must be able to scale the storage based on demand without 
+  needing to provision storage. Multiple servers across multiple Availability 
+  Zones within a region should be able to access this storage concurrently. 
+  Which services should the Solutions Architect recommend?
+A. Amazon S3
+B. Amazon EBS Multi-Attach
+C. Amazon EFS
+D. AWS Storage Gateway – Volume gateway
+
+15.A user has created a snapshot of an EBS volume. Which of the below mentioned 
+   usage cases is not possible with respect to a snapshot?
+A. Mirroring the volume from one AZ to another AZ
+B. Launch an instance
+C. Decrease the volume size
+D. Increase the size of the volume
+
+16. An IAM policy allows s3:GetObject for arn:aws:s3:::mybucket/*.
+The user can list all objects but cannot read them. Why?
+
+A. Bucket-level permission missing for s3:ListBucket
+B. Object ACL denies read access
+C. The bucket is in a different region
+D. The user doesn’t have console access
+
+17. You create an IAM role and attach it to an EC2 instance. Later, you update 
+    the role permissions in IAM.
+When will the EC2 instance start using the new permissions?
+A. After restarting EC2
+B. After re-attaching IAM role
+C. Automatically within a few seconds
+D. Only after AWS CLI refresh
+
+18. 
+
+

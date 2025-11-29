@@ -1,0 +1,13 @@
+Problem Statement
+
+You are designing a multi-VPC architecture in AWS using a Transit Gateway.
+The requirement is to control communication between three VPCs with specific rules:
+
+VPC A : Can communicate only with VPC B. 
+        It should not directly communicate with VPC C.
+
+VPC B : Must communicate with both VPC A and VPC C.
+
+VPC C : Can communicate only with VPC B. 
+        It should not directly communicate with VPC 
+

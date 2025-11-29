@@ -1,0 +1,22 @@
+Lab Scenario:
+
+You are a Cloud Administrator in a company.
+Your manager wants to give a junior engineer (EC2User) the ability to start and 
+stop only Production EC2 instances.
+
+However, the junior engineer should not:
+
+Start/Stop non-Production instances
+
+Terminate any instance
+=================================================================================
+Steps
+1.Create an IAM User (EC2User.)
+
+2.Permission Boundary (allows only Stop and start Instances actions on instances 
+with tag Environment=Production.
+
+3.Attach IAM Policies (basic EC2 permissions (view, start, stop).
+
+4.Launch EC2 Instances (one with tag Environment=Production)
+                     (another with Environment=Development)

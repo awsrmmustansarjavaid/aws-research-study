@@ -1,0 +1,40 @@
+Permission Boundary Policy:( POLICY NAME: EC2UserPermissionBoundary)
+
+{ 
+    "Version": "2012-10-17", 
+    "Statement": [ 
+        { 
+            "Effect": "Allow", 
+            "Action": [ 
+ 
+ 
+                "ec2:DescribeInstances", 
+                "ec2:DescribeInstanceStatus" 
+            ], 
+            "Resource": "*" 
+        }, 
+        { 
+            "Effect": "Allow", 
+            "Action": [ 
+                "ec2:StartInstances", 
+                "ec2:StopInstances" 
+            ], 
+            "Resource": "*", 
+            "Condition": { 
+                "StringEquals": { 
+                    "ec2:ResourceTag/Environment": 
+"Production" 
+                } 
+            } 
+        }, 
+        { 
+ 
+ 
+            "Effect": "Deny", 
+            "Action": [ 
+                "ec2:TerminateInstances" 
+            ], 
+            "Resource": "*" 
+        } 
+    ] 
+}

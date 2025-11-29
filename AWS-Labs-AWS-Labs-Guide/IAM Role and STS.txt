@@ -1,0 +1,69 @@
+Lab: Cross-Account S3 Access Using IAM Role and STS
+
+Account-1 (Your Primary Account)
+
+Step 1: Log in to Account-1 (account-one).
+
+Create one IAM group → name it EC2ReadersGroup.
+
+Create two IAM users → User1 and User2.
+
+Add both users to the group.
+
+Step 2: Attach policy to the group:
+
+Attach AmazonEC2ReadOnlyAccess policy
+===========================================================
+Account-2 (Another AWS Account)
+
+Step 3: Log in to Account-2.
+
+Go to S3 → create a bucket 
+
+Step 4: Create a role for cross-account access.
+
+Go to IAM → Roles → Create role.
+
+Select Another AWS Account.
+
+Enter Account ID of Account-1.
+
+Attach policy → AmazonS3ReadOnlyAccess.
+
+Role name → S3ReadRole.
+==============================================================
+
+Back to Account-1 
+
+Step 5: Create an inline policy for the IAM group.
+
+Go to IAM → Groups → EC2ReadersGroup → Permissions → Add inline policy.
+
+Choose STS (Security Token Service).
+
+Select AssumeRole.
+
+Add ARN of the role from Account-2 (arn:aws:iam::<Account2-ID>:role/S3ReadRole).
+
+Save policy.
+===============================================================================
+Testing with Users in Account-1
+
+Step 6: Login as IAM User1 (from Account-1).
+
+Go to Switch Role (top-right menu).
+
+Enter:
+
+Account ID: Account-2 ID
+
+Role Name: S3ReadRole
+
+Switch role.
+
+Step 7: Check S3 Service.
+
+User1 should now see the bucket (account2-shared-bucket) from Account-2 in 
+read-only mode.
+
+Step 8: Repeat the same for IAM User2.
