@@ -4,8 +4,6 @@ A complete step‑by‑step AWS lab scenario for deploying a **static e‑commer
 
 This Markdown file is ready for GitHub.
 
-## **AWS Visual Architecture Diagram**
-![AWS-Labs-Visual-Architecture-Diagram.](https://https://github.com/awsrmmustansarjavaid/AWS-Labs/blob/AWS-Labs-Visual-Architecture-Diagram/Highly%20Available,%20Scheduled,%203-Tier%20E-Commerce%20Architecture.jpg?raw=true)
 ---
 
 # 📌 **Lab Title**

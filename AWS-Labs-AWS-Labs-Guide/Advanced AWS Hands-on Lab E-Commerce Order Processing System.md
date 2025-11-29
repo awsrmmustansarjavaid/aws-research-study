@@ -5,7 +5,12 @@
 - Use 2 Availability Zones (AZs) for HA — e.g. us-east-1a and us-east-1b
 - Replace `your-ip/32` with your public IP when restricting SSH
 
+## **AWS Visual Architecture Diagram**
+![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/AWS-Labs/blob/AWS-Labs-Visual-Architecture-Diagram/ChatGPT%20Image%20Nov%2026,%202025,%2011_55_29%20AM.png?raw=true)
 ---
+
+
+
 
 ## 1 — VPC & Subnets
 
