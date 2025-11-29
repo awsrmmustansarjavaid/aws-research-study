@@ -1,0 +1,33 @@
+Cloud Infrastructure: 
+---Globally distributed interconnected sets of independent data centers.
+
+---Globally Distributed: 
+                 100+ datacenters (AWS & Azure) are operational around the globe.
+
+---Inter-Connected:
+           Datacenters are connected through high speed, redundant network links
+           forming a network backbone.
+
+---Sets Of:
+          Two or more datacenters are running as a backup.
+          Datacenters works on pairs/sets as backup for each other
+          Microsoft tries to ensures minimum 03 datacenters
+          In busy regions number can be high up to 06 datacenters
+
+---Independent Datacenters:
+    ...Each datacenters operate autonomously.
+    ...Equipped with its own resources, power supply, cooling systems and security measures.
+    ...Power, networking and cooling infra is dedicated for each datacenter and it
+       is not shared.
+---------------------------------------------------------------------------------- 
+---On-demand delivery:
+     ...Means cloud provider has the resources you need, when you need them
+     
+--- IT resources over the internet:
+     ... Servers, networks, storage, development tools and application
+
+--- Pay as you go pricing:
+    ... pay only for what you need when you use it
+
+
+
