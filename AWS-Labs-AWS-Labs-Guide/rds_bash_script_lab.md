@@ -9,7 +9,7 @@ Learn how to connect to an AWS RDS database using Bash scripts **without typing 
 3. Environment variable (For quick labs)
 
 ## **AWS Visual Architecture Diagram**
-![AWS RDS + Linux Bash Scripting Lab.](https://raw.githubusercontent.com/awsrmmustansarjavaid/AWS-Labs/47207e7e65567fd8d0eb472672a880e547be2b7c/AWS%20RDS%20+%20Linux%20Bash%20Scripting%20Lab.jpg)
+![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Visual-Architecture-Diagram/AWS%20RDS%20+%20Linux%20Bash%20Scripting%20Lab.jpg?raw=true)
 ---
 
 # **1. Prerequisites**
@@ -400,7 +400,7 @@ I can generate:
 ## Next Task
 
 ## **AWS Visual Architecture Diagram**
-![AWS Visual Architecture Diagram](https://github.com/awsrmmustansarjavaid/AWS-Labs/blob/AWS-Labs-Visual-Architecture-Diagram/1_VnZWZ37dIjzoKc7pfDqH0w.png?raw=true)
+![AWS Visual Architecture Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Visual-Architecture-Diagram/1_VnZWZ37dIjzoKc7pfDqH0w.png?raw=true)
 ---
 
 ## 1. Create IAM Role for EC2 (CloudWatch + RDS Monitoring)
