@@ -1,0 +1,94 @@
+pipeline {
+  agent any
+
+  environment {
+    DEPLOY_USER        = 'ubuntu'
+    DEPLOY_HOST        = '172.31.12.118'
+    DEPLOY_PATH        = '/var/www/html'
+    SSH_CREDENTIALS_ID = 'node-app-key'
+    REPO_URL           = 'https://github.com/aniketchougule108/static-website-project-terraform-jenkins.git'
+    BRANCH             = 'main'
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        git branch: "${BRANCH}", url: "${REPO_URL}"
+      }
+    }
+
+    stage('Prepare Remote') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID,
+                            keyFileVariable: 'SSH_KEY',
+                            usernameVariable: 'SSH_USER')
+        ]) {
+          sh """
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" ${SSH_USER}@${DEPLOY_HOST} '
+              set -e
+              sudo apt-get update -y
+              sudo apt-get install -y nginx
+              sudo systemctl enable nginx
+              sudo systemctl start nginx
+              sudo mkdir -p ${DEPLOY_PATH}
+            '
+          """
+        }
+      }
+    }
+
+    stage('Upload & Deploy') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(credentialsId: SSH_CREDENTIALS_ID,
+                            keyFileVariable: 'SSH_KEY',
+                            usernameVariable: 'SSH_USER')
+        ]) {
+
+          sh """
+            # Upload ONLY website files
+            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" -r web-files/* ${SSH_USER}@${DEPLOY_HOST}:/tmp/deploy_payload
+
+            # Run deployment on remote
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" ${SSH_USER}@${DEPLOY_HOST} "
+              set -e
+              DEPLOY_PATH='${DEPLOY_PATH}'
+
+              sudo rm -rf \\\"\$DEPLOY_PATH\\\"/*
+              sudo mv /tmp/deploy_payload/* \\\"\$DEPLOY_PATH\\\"/
+
+              # Rename homepage file
+              if [ -f \\\"\$DEPLOY_PATH/HomePage.html\\\" ]; then
+                sudo mv \\\"\$DEPLOY_PATH/HomePage.html\\\" \\\"\$DEPLOY_PATH/index.html\\\"
+              fi
+
+              sudo chown -R www-data:www-data \\\"\$DEPLOY_PATH\\\"
+              sudo chmod -R 755 \\\"\$DEPLOY_PATH\\\"
+
+              sudo systemctl restart nginx
+
+              echo DEPLOY_OK
+            "
+          """
+        }
+      }
+    }
+
+    stage('Smoke Test') {
+      steps {
+        sh "curl -I http://${DEPLOY_HOST} | head -n 5 || true"
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Deployment succeeded — open http://${DEPLOY_HOST}"
+    }
+    failure {
+      echo "❌ Deployment failed — check console output"
+    }
+  }
+}
