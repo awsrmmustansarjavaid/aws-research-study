@@ -24,28 +24,9 @@ This Markdown file is ready for GitHub.
 - S3 frontend integrated with EC2 API → EC2 connects to RDS
 
 ---
-# 📌 **Architecture Diagram (ASCII)**
-```
-                +---------------- CloudFront ----------------+
-                |                                             |
-        User -> |   Static Website (S3) + API -> ALB DNS      |
-                +--------------------|------------------------+
-                                       |
-                                       v
-                              +-----------------+
-                              |  ALB (Public)   |
-                              +--------|--------+
-                                       |
-                           +-----------+------------+
-                           |                        |
-                       EC2 Instance (AZ-A)      EC2 Instance (AZ-B)
-                        Private Subnet            Private Subnet
-                               |                        |
-                               +-----------+------------+
-                                           |
-                                           v
-                                  RDS MySQL (Multi-AZ)
-```
+## **AWS Visual Architecture Diagram**
+![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Visual-Architecture-Diagram/Highly%20Available,%20Scheduled,%203-Tier%20E-Commerce%20Architecture.jpg?raw=true)
+---
 ___________________________________________________________________________
 
 ---
