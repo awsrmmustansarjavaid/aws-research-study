@@ -6,7 +6,7 @@
 - Replace `your-ip/32` with your public IP when restricting SSH
 
 ## **AWS Visual Architecture Diagram**
-![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/AWS-Labs/blob/AWS-Labs-Visual-Architecture-Diagram/ChatGPT%20Image%20Nov%2026,%202025,%2011_55_29%20AM.png?raw=true)
+![AWS Labs Visual Architecture Diagram.](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Visual-Architecture-Diagram/Advanced%20AWS%20Hands-on%20Lab%20E-Commerce%20Order%20Processing%20System.png?raw=true)
 ---
 
 
