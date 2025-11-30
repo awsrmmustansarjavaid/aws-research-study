@@ -1,4 +1,4 @@
-# End-to-end Console + CLI Step-by-step Guide (Complete Settings)
+# Advanced AWS Hands-on Lab E-Commerce Order Processing System
 
 ## Prerequisites
 - AWS account with permissions to create VPC, EC2, IAM, ALB/NLB, Auto Scaling, S3, Lambda, DynamoDB, CloudWatch, CloudTrail, SNS
