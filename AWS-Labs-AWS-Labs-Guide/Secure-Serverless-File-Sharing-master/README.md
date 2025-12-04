@@ -1,3 +1,24 @@
+ a security-focused serverless file-sharing project on AWS.
+
+The idea was to build a secure backend where authenticated users can upload and download files using time-limited presigned URLs. Files never pass through the backend. Instead, uploads and downloads happen directly through Amazon S3 with tightly controlled access.
+
+Key capabilities implemented:
+• User authentication using AWS Cognito with JWT
+ • Presigned URL generation for secure uploads and downloads
+ • Audit logging for every request in DynamoDB
+ • Strict least-privilege IAM role assignments
+ • CloudWatch logging for visibility and debugging
+ • Full infrastructure provisioned and versioned through Terraform
+
+This project helped me deepen my understanding of AWS security patterns, serverless architecture, and Infrastructure as Code workflows.
+
+Quick question:
+What’s the next most valuable improvement here: UI, Role-Based Access Control, or CI/CD?
+Would love your thoughts.
+
+
+
+
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Terraform](https://img.shields.io/badge/Infra-Terraform-844FBA)
 ![Serverless](https://img.shields.io/badge/Architecture-Serverless-blue)
