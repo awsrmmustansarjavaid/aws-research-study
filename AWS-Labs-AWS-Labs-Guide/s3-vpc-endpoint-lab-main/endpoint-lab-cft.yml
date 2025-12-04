@@ -1,0 +1,224 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  EC2AMI:
+    Description: EC2AMI
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+  S3PrefixList:
+    Type: String
+    #S3 prefix list in ap-south-1
+    #https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-prefix-lists.html
+    #aws ec2 describe-prefix-lists --region ap-south-1
+    Default: "pl-78a54011"
+  VPCCidrBlock:
+    Type: String
+    Default: "10.1.0.0/16"
+
+Outputs:
+  S3InterfaceEndpointDnsEntry:
+    Description: 'S3InterfaceEndpointDnsEntries'
+    Value: !Select [ "0", !GetAtt S3InterfaceEndpoint.DnsEntries]
+
+Resources:
+
+  VPC:
+      Type: "AWS::EC2::VPC"
+      Properties:
+        EnableDnsSupport: true
+        EnableDnsHostnames: true        
+        CidrBlock:  !Ref VPCCidrBlock
+
+  PrivateSubnet:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        AvailabilityZone: !Select
+              - 0
+              - Fn::GetAZs: !Ref "AWS::Region"
+        VpcId: !Ref VPC
+        CidrBlock:   "10.1.1.0/24"
+        MapPublicIpOnLaunch: false
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  SubnetRouteTableAssociationa:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId: !Ref PrivateSubnet
+        RouteTableId: !Ref PrivateRouteTable
+
+
+###########################
+# SSM Interface Endpoint
+# https://aws.amazon.com/premiumsupport/knowledge-center/ec2-systems-manager-vpc-endpoints/
+###########################
+  SSMEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group 
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: !Ref VPCCidrBlock
+      VpcId: !Ref VPC
+
+
+  SSMEndpoint:
+      Type: "AWS::EC2::VPCEndpoint"
+      Properties:
+        SecurityGroupIds: 
+          - !Ref SSMEndpointSecurityGroup
+        ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+        SubnetIds: 
+          - !Ref PrivateSubnet
+        VpcEndpointType: Interface
+        PrivateDnsEnabled: true
+        VpcId: !Ref VPC
+
+  Ec2MsgEndpoint:
+      Type: "AWS::EC2::VPCEndpoint"
+      Properties:
+        SecurityGroupIds: 
+          - !Ref SSMEndpointSecurityGroup
+        ServiceName: !Sub com.amazonaws.${AWS::Region}.ec2messages
+        SubnetIds: 
+          - !Ref PrivateSubnet
+        VpcEndpointType: Interface
+        PrivateDnsEnabled: true
+        VpcId: !Ref VPC
+
+  SSMMsgEndpoint:
+      Type: "AWS::EC2::VPCEndpoint"
+      Properties:
+        SecurityGroupIds: 
+          - !Ref SSMEndpointSecurityGroup
+        ServiceName: !Sub com.amazonaws.${AWS::Region}.ssmmessages
+        SubnetIds: 
+          - !Ref PrivateSubnet
+        VpcEndpointType: Interface
+        PrivateDnsEnabled: true
+        VpcId: !Ref VPC
+
+###########################
+#   EC2 used to test the connectivity
+###########################
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group 
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: !Ref VPCCidrBlock
+      VpcId: !Ref VPC
+  
+  # Define egress route to S3 via Gateway Endpoint
+  EC2EgressToS3:
+      Type: AWS::EC2::SecurityGroupEgress
+      Properties: 
+        DestinationPrefixListId: !Ref S3PrefixList
+        FromPort: 443
+        GroupId: !Ref EC2SecurityGroup
+        IpProtocol: tcp
+        ToPort: 443
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "ec2.amazonaws.com"
+                }
+            }]
+        }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref InstanceRole
+
+  EC2Server1:
+      Type: AWS::EC2::Instance
+      Properties:
+        InstanceType: t2.micro
+        SecurityGroupIds: [!Ref EC2SecurityGroup]
+        IamInstanceProfile: !Ref InstanceProfile
+        ImageId:  !Ref EC2AMI
+        SubnetId: !Ref PrivateSubnet
+        Tags:
+          -
+            Key: "Name"
+            Value:  "private.ec2.demo.no-internet"
+
+###########################
+#   S3 Gateway Endpoint   #
+###########################
+
+  S3GatewayEndpoint:
+      Type: "AWS::EC2::VPCEndpoint"
+      #Security Group ID and subnet and privateDNS are only used with interface endpoint
+      Properties:
+        PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: 's3:*'
+                Effect: Allow
+                Resource: '*'
+                Principal: '*'
+        ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+        VpcEndpointType: Gateway
+        VpcId: !Ref VPC      
+        RouteTableIds: 
+          - !Ref PrivateRouteTable
+
+
+###########################
+#   S3 Interface Endpoint #
+###########################
+  S3InterfaceEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group 
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: !Ref VPCCidrBlock
+      VpcId: !Ref VPC
+  
+  #https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html#vpce-private-dns
+  # S3 interface endpoint not like other interface endpoints, it does not support private dns
+  S3InterfaceEndpoint:
+      Type: "AWS::EC2::VPCEndpoint"
+      Properties:
+        SecurityGroupIds: 
+          - !Ref S3InterfaceEndpointSecurityGroup
+        ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+        SubnetIds: 
+          - !Ref PrivateSubnet
+        VpcEndpointType: Interface
+        VpcId: !Ref VPC
+        PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: 's3:*'
+                Effect: Allow
+                Resource: '*'
+                Principal: '*'
