@@ -64,7 +64,7 @@ A hands‑on lab that builds a multi-VPC production‑grade AWS environment usin
 
 *  Go to **VPC → Transit Gateways**  
 *  Create TGW  
-*  Name: `CloudMalangi-TGW`  
+*  Name: `Cloud-TGW`  
 *  Enable DNS support  
 *  Disable auto‑accept  
 *  Create TGW  
@@ -338,7 +338,7 @@ __Notes:__
 
 * For CloudWatch logging from multiple services, use this multi-service trust policy:
 
-* cloudmalangi-cloudwatch-logging-role (Trust Policy)
+* cloud-cloudwatch-logging-role (Trust Policy)
 
 
 ```
@@ -448,7 +448,7 @@ __Notes:__
 * **Add key/value:**
 
     * **Key:** BUCKET_NAME
-    * **Value:** cloudmalangi-app-data
+    * **Value:** cloud-app-data
 
 
 **Note:*** You can reference this in Python code: os.environ['BUCKET_NAME']
