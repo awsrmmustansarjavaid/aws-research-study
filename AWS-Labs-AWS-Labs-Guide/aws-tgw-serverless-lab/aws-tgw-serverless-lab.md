@@ -651,4 +651,4 @@ Only works if NAT GW exists.
 
 ---
 
-**Your CloudMalangi Secure Mesh lab is now 100% production‑ready.**
+**Your Cloud Secure Mesh lab is now 100% production‑ready.**
