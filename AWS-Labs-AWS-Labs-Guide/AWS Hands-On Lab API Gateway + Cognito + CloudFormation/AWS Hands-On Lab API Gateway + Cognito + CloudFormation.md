@@ -51,8 +51,215 @@ Lambda = Backend function
 
 * A test user created
 
+## STEP 2:  IAM ROLE
 
-## STEP 2:  Create a Lambda Function
+### ✅ IAM ROLE 1 — Lambda Execution Role
+
+#### Create IAM Role for Lambda
+
+* Console → IAM → Roles → Create Role
+
+* Trusted entity → AWS service
+
+* Service → Lambda
+
+* Attach policy:
+
+    * **AWSLambdaBasicExecutionRole**
+
+➡ This allows Lambda to write logs to CloudWatch.
+
+##### ✔ Lambda Execution Role — Inline Policy (optional but recommended)
+
+* If you want to add more permissions later, here is the minimal logging policy:
+
+    * **Policy: LambdaBasicLogging.json**
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+
+```
+**🎯 Final Lambda Trust Policy**
+
+* Lambda automatically gets this trust policy:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+```
+
+
+### ✅ IAM ROLE 2 — CloudFormation Deployment Role
+
+**If you want CloudFormation to create all services on your behalf:**
+
+* Console → IAM → Roles → Create Role
+
+* Trusted entity → AWS service
+
+* Service → CloudFormation
+
+* Attach policy:
+
+    * AmazonCognitoPowerUser
+
+    * AWSLambdaFullAccess
+
+    * AmazonAPIGatewayAdministrator
+
+    * IAMFullAccess (optional, only if template creates roles)
+
+    * CloudWatchFullAccess
+
+
+**✔ Recommended CloudFormation Deployment Policy (least privilege)**  
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:*",
+        "lambda:*",
+        "apigateway:*",
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+
+```
+
+
+**CloudFormation Trust Policy**
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudformation.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+```
+
+##### 📌 Where to place IAM Role in CloudFormation template?
+
+* Modify your YAML:
+
+```
+LambdaRole:
+  Type: AWS::IAM::Role
+  Properties:
+    RoleName: LambdaBasicExecutionRole
+    AssumeRolePolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+    ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+LambdaFunction:
+  Type: AWS::Lambda::Function
+  Properties:
+    Handler: index.lambda_handler
+    Runtime: python3.12
+    Role: !GetAtt LambdaRole.Arn
+    Code:
+      ZipFile: |
+        def lambda_handler(event, context):
+            return {
+                "statusCode": 200,
+                "body": "Hello from CloudFormation Lambda!"
+            }
+
+```
+
+### Step-by-Step IAM Setup Guide
+
+#### STEP 1 — Create Lambda Execution Role
+
+* ✔ Go to IAM → Roles → Create Role
+* ✔ Select Lambda
+* ✔ Attach AWSLambdaBasicExecutionRole
+* ✔ Name it: LambdaBasicExecutionRole
+
+#### STEP 2 — Create CloudFormation Deployment Role (optional)
+
+* ✔ IAM → Roles → Create Role
+* ✔ Select CloudFormation
+* ✔ Attach:
+
+    * AmazonAPIGatewayAdministrator
+
+    * AWSLambdaFullAccess
+
+    * AmazonCognitoPowerUser
+
+* Name it: CloudFormationAPILabRole
+
+#### STEP 3 — Use the Role in your YAML template
+
+* Replace:
+
+```
+Role: arn:aws:iam::<ACCOUNT-ID>:role/<YourLambdaRole>
+
+```
+* With:
+
+```
+Role: arn:aws:iam::<ACCOUNT-ID>:role/LambdaBasicExecutionRole
+
+```
+
+
+
+---
+
+
+## STEP 3:  Create a Lambda Function
 
 * Go to Lambda → Create function
 
@@ -75,7 +282,7 @@ def lambda_handler(event, context):
 * Backend service ready
 ---
 
-## STEP 3:  Create API Gateway (Cognito Protected API)  
+## STEP 4:  Create API Gateway (Cognito Protected API)  
 * Go to API Gateway
 
 * Create → HTTP API
@@ -101,7 +308,7 @@ Good! It means the API is protected.
 
 ---
 
-## STEP 4: Generate Access Token to Call API
+## STEP 5: Generate Access Token to Call API
 *  AWS CLI required.
 
 *  Install AWS CLI
@@ -134,7 +341,7 @@ curl -H "Authorization: ACCESS_TOKEN_HERE" https://your-api-id.execute-api.regio
 ---
 
 
-## STEP 5: Deploy the Same Setup Using CloudFormation
+## STEP 6: Deploy the Same Setup Using CloudFormation
 
 *  Create one YAML file:
 
