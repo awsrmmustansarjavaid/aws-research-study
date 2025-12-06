@@ -6,7 +6,7 @@ This lab creates a simple secure API where:
 
 **API Gateway** = Protected API endpoint
 
-Lambda = Backend function
+**Lambda** = Backend function
 
 **CloudFormation** = Deploy everything automatically
 
