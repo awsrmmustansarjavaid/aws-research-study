@@ -51,6 +51,8 @@ Lambda = Backend function
 
 * A test user created
 
+---
+
 ## STEP 2:  IAM ROLE
 
 ### ✅ IAM ROLE 1 — Lambda Execution Role
@@ -402,21 +404,172 @@ aws cloudformation deploy \
 
 ---
 
-**LAB COMPLETE** 
+## LAB Verify Test
 
-**You now understand:**
+### ✅ Step 1 — Cognito User Pool Verification
 
-*  **✔️ AWS API Gateway**
+#### Test 1: Verify User Pool Working
 
-Creating and protecting an API
+**Go to:**
 
-*  **✔️ AWS Cognito**
+* Cognito → User Pools → YourPool → Users
 
-User login + JWT tokens + API protection
+**You should see:**
 
-*  **✔️ AWS CloudFormation**
+* ✔ A user named testuser
+* ✔ Status = FORCE_CHANGE_PASSWORD (after first login, becomes CONFIRMED)
 
-Deploying infrastructure automatically
+#### Test 2: Sign in using AWS CLI
+
+**Run:**
+
+```
+aws cognito-idp initiate-auth \
+  --auth-flow USER_PASSWORD_AUTH \
+  --client-id YOUR_APP_CLIENT_ID \
+  --auth-parameters USERNAME=testuser,PASSWORD=Test@1234
+
+```
+
+**Success output includes:**
+
+* ✔ AuthenticationResult
+* ✔ IdToken
+* ✔ AccessToken
+* ✔ RefreshToken
+
+**If Cognito fails → The entire chain fails → Fix Cognito before continuing.**
+
+---
+
+### ✅ Step 2 — API Gateway Authorizer Verification
+
+#### Test 3: API Gateway should show 401 Unauthorized WITHOUT token
+
+**Open your API URL:**
+
+```
+https://your-api-id.execute-api.region.amazonaws.com/
+
+```
+**Expected result:**
+
+* ❌ {"message": "Unauthorized"}
+* ✔ Means Cognito Authorizer is correctly protecting your API.
+
+**If API is accessible without token → Authorizer is NOT attached.**
+
+#### Test 4: API Works With Token
+
+**Use CURL:**
+
+```
+curl -H "Authorization: ACCESS_TOKEN_HERE" \
+https://your-api-id.execute-api.region.amazonaws.com/
+```
+
+**Expected output:**
+
+* ✔ "🎉 Hello! API is working."
+
+* If you see 403 Forbidden → Wrong token (probably ID token, instead of access token).
+* If you see 401 Unauthorized → Authorizer misconfiguration.
+* If you see 500 → Lambda error.
+
+---
+
+### ✅ Step 3 — Lambda Verification
+
+#### Test 5: Lambda executes successfully
+
+##### Run test from AWS console:
+
+* Lambda → Test → Create Test Event → Run
+
+**Expected output:**
+
+* ✔ StatusCode: 200
+* ✔ Body: Hello! API is working.
+
+#### Test 6: Check CloudWatch Logs
+
+* CloudWatch → Logs → /aws/lambda/YourFunctionName
+
+* You should see new logs after each execution.
+
+* If logs do not appear:
+
+    * ❌ IAM role missing
+    * Fix by attaching:
+
+      * ➡ AWSLambdaBasicExecutionRole
+
+---
+
+### ✅ Step 4 — Lambda Verification
+
+#### Test 7: CloudFormation Stack Status
+
+**Go to:**
+
+* CloudFormation → Stacks
+
+**Expected:**
+
+* ✔ Status = CREATE_COMPLETE
+
+**If it shows:**
+
+* ❌ ROLLBACK_IN_PROGRESS
+* ❌ ROLLBACK_COMPLETE
+
+**Check Events tab.**
+
+* Fix IAM or resource configurations accordingly.
+
+#### Test 8: All resources should appear in the stack
+
+* CloudFormation → Your Stack → Resources
+
+**You should see ALL:**
+
+* ✔ Cognito User Pool
+* ✔ Cognito User Pool Client
+* ✔ API Gateway
+* ✔ Lambda Function
+* ✔ IAM Role (if included)
+
+**If items missing → Template incomplete.**
+
+---
+
+### ✅ Step 5 — End-to-End (E2E) Final Validation
+
+#### Test 9: Full JWT Authentication Flow
+
+* 1️⃣ Login (CLI) → Get Access Token
+* 2️⃣ Call API WITHOUT token → should fail
+* 3️⃣ Call API WITH token → should succeed
+* 4️⃣ Token expires → API should return 401
+* 5️⃣ Call API with invalid token → 401
+* 6️⃣ Call Lambda directly → Works with test event
+
+**If all 6 steps pass → Lab is 100% complete.**
+---
+
+
+## 🟢 100% SUCCESS CONDITION
+
+**Your lab is considered 100% successful only when ALL conditions are true:**
+
+* ✔ User successfully signs in via Cognito → Token received
+* ✔ API Gateway rejects requests WITHOUT token
+* ✔ API Gateway allows requests WITH valid token
+* ✔ Lambda executes and returns output
+* ✔ CloudFormation deployed full infrastructure
+* ✔ IAM role allowed Lambda to log into CloudWatch
+* ✔ CloudWatch shows logs for each API call
+
 
 
 
