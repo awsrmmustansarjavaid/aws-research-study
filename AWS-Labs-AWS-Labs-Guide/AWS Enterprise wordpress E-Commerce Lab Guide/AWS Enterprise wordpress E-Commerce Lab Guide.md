@@ -22,7 +22,7 @@ This lab walks you through deploying a real enterprise-grade e-commerce architec
 
 ---
 ## **AWS Visual Architecture Diagram**
-![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Visual-Architecture-Diagram/Highly%20Available,%20Scheduled,%203-Tier%20E-Commerce%20Architecture.jpg?raw=true)
+![AWS RDS + Linux Bash Scripting Lab.](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/AWS%20Enterprise%20wordpress%20E-Commerce%20Lab%20Guide/AWS%20Enterprise%20wordpress%20E-Commerce%20Lab%20Guide.png?raw=true)
 ---
 ___________________________________________________________________________
 
