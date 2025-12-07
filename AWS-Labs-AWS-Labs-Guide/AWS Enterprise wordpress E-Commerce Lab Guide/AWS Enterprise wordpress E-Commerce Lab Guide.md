@@ -198,6 +198,7 @@ Uploads will now move automatically to S3.
 
 ### Folder Structure
 
+```
 wordpress-lab/
 ├── index.html        ← Homepage
 ├── product.html      ← Product listing page
@@ -212,7 +213,7 @@ wordpress-lab/
     ├── cart.php
     ├── checkout.php
     └── login.php
-
+```
 
 ### front-end files
 
