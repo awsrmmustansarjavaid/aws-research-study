@@ -321,22 +321,149 @@ or
 
 ## 6. RDS MySQL Setup
 
-1. Create RDS:
+### 1. Create RDS:
 
 * Engine: MySQL 8
 * Multi-AZ: Yes
 * Private Subnets
 * Security Group: allow EC2:3306
 
-2. Create DB:
+### 2. Create DB:
 
 * Name: `wpdb`
 * User: `wpadmin`
 * Password: create random strong password
 
-3. Store in Secrets Manager:
+### 3. Store in Secrets Manager:
 
 * Secret Name: `wp/database/credentials`
+
+### 4. Create Table
+###### Run in RDS Query Editor or EC2:
+
+#### 🔥 1. Update EC2 & Install MySQL Client (Not MariaDB)
+
+Since your RDS = MySQL, use mysql client, not MariaDB.
+
+##### Amazon Linux 2023:
+
+```
+sudo dnf update -y
+sudo dnf install mysql -y
+```
+
+##### Check version:
+
+```
+mysql --version
+```
+
+* ✔ Works with MySQL 8.x RDS
+* 🚫 Avoid mariadb105 — not needed.
+
+#### ✅ 2. Connect EC2 → RDS (Use YOUR RDS endpoint)
+
+##### Replace with YOUR endpoint:
+
+```
+ecommerce-static-site-db.cm5oowikel4z.us-east-1.rds.amazonaws.com
+```
+
+##### Command:
+
+```
+mysql -h ecommerce-static-site-db.cm5oowikel4z.us-east-1.rds.amazonaws.com -u admin -p
+```
+
+**Enter password when prompted.**
+
+#### ✅ 3. Confirm RDS Server Connection
+
+```
+SHOW DATABASES;
+```
+
+#### 🔥 4. Create Your Lab Database (required for products API)
+
+**Your WordPress uses wpdb,**
+##### Your e-commerce API uses ecommerce database.
+
+###### So both must exist.
+
+##### Create database:
+
+```
+CREATE DATABASE ecommerce;
+```
+
+##### Select database:
+
+```
+USE ecommerce;
+```
+
+#### 🔥 5. Create “products” TABLE for API Gateway → Lambda → RDS
+
+##### table with proper datatypes, indexes & consistency:
+
+```
+CREATE TABLE products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 🔥 6. Insert Sample Product Data (Corrected Pricing)
+
+```
+INSERT INTO products (name, price, description) VALUES
+ ('Laptop', 1200.00, 'High performance laptop'),
+ ('Phone', 800.00, 'Premium smartphone'),
+
+ ('PC', 30000.00, 'High-end PC'),
+ ('Samsung', 8000.00, 'Samsung smartphone'),
+
+ ('Gaming PC', 6000.00, 'RGB gaming machine'),
+ ('iPhone', 8700.00, 'Apple iPhone'),
+
+ ('Smart LED', 5400.00, 'Smart LED TV A1 Series'),
+ ('LCD Monitor', 700.00, 'HD LCD monitor'),
+
+ ('Mouse', 600.00, 'Wireless branded mouse'),
+ ('Headphone', 8700.00, 'Noise-cancelling headphone');
+```
+
+#### 🔥 7. Show Products Table
+
+```
+SHOW TABLES;
+```
+
+#### 🔥 8. View All Products (for API testing)
+
+```
+SELECT * FROM products;
+```
+
+##### This will output:
+
+```
+| id | name   | price   | description |
+| -- | ------ | ------- | ----------- |
+| 1  | Laptop | 1200.00 | ...         |
+| 2  | Phone  | 800.00  | ...         |
+| …  | …      | …       | …           |
+```
+
+
+
+
+
+
+
 
 ---
 
@@ -345,7 +472,7 @@ or
 Edit `/var/www/html/wp-config.php`:
 
 ```php
-define('DB_NAME', 'wpdb');
+define('DB_NAME', 'ecommerce');
 define('DB_USER', 'wpadmin');
 define('DB_PASSWORD', '<SecretsManager>');
 define('DB_HOST', '<RDS-endpoint>');
