@@ -140,6 +140,182 @@ sudo tar -xzf latest.tar.gz
 sudo mv wordpress/* .
 sudo chown -R apache:apache /var/www/html
 ```
+### ✅ 1. Check WordPress Files Exist
+
+#### Run:
+
+```
+ls -l /var/www/html
+```
+
+##### You should see files like:
+
+```
+wp-admin/
+
+wp-content/
+
+wp-includes/
+
+wp-config-sample.php
+
+index.php
+
+license.txt
+
+readme.html
+
+```
+
+**If you see these, WordPress has been extracted correctly.**
+
+### ✅ 2. Check Apache is Running
+
+#### Run:
+
+```
+sudo systemctl status httpd
+```
+
+##### Or if using Ubuntu:
+
+```
+sudo systemctl status apache2
+```
+
+##### You MUST see:
+
+```
+active (running)
+```
+
+##### If not running:
+
+```
+sudo systemctl start httpd
+sudo systemctl enable httpd
+```
+
+### ✅ 3. Check SELinux/File Permissions (for Amazon Linux 2)
+
+**If you are using Amazon Linux 2 and SELinux is enforcing:**
+
+#### Run:
+
+```
+sudo restorecon -r /var/www/html
+```
+
+#### And ensure permissions:
+
+```
+sudo chown -R apache:apache /var/www/html
+sudo chmod -R 755 /var/www
+```
+
+### ✅ 4. Visit WordPress in Browser
+
+**Use your EC2 instance public IP, or ALB DNS name:**
+
+#### Example:
+
+```
+http://<EC2-PUBLIC-IP>
+```
+
+or
+
+```
+http://<ALB-DNS-Name>
+```
+
+#### If WordPress is deployed correctly, you should see:
+
+**WordPress Installation Page**
+```
+“Welcome to WordPress. Let’s get started.”
+```
+
+**If you see this — WordPress is successfully deployed.**
+
+### ❗ If You See "Test Page" Instead of WordPress
+
+#### Run this:
+
+```
+sudo rm -f /var/www/html/index.html
+```
+
+Apache default page blocks WordPress.
+
+Then refresh browser.
+
+### ❗ If You See a 403 or 404
+
+#### Run:
+
+```
+sudo chmod -R 755 /var/www/html
+sudo chown -R apache:apache /var/www/html
+```
+
+#### Restart Apache:
+
+```
+sudo systemctl restart httpd
+```
+
+### 📌 5. Verify PHP Is Working
+
+#### Run:
+
+```
+php -v
+```
+
+You MUST see a PHP version (7.x or 8.x).
+
+**If not installed, WordPress won’t load.**
+
+### 📌 6. Check ALB Target Group Health
+
+**If using an ALB, go to:**
+
+* **AWS Console → EC2 → Target Groups → Your TG → Targets**
+
+#### You MUST see:
+
+```
+healthy
+```
+
+#### If “unhealthy”, your health check path should be:
+
+```
+/wp-admin/install.php
+```
+
+or
+
+```
+/
+```
+
+### 📌 FINAL CHECKLIST
+
+#### Check	Status
+
+```
+| Check                       | Status                 |
+| --------------------------- | ---------------------- |
+| WordPress files exist       | ls /var/www/html       |
+| Apache running              | systemctl status httpd |
+| Permissions correct         | apache:apache          |
+| Default index.html removed  | ✔                      |
+| Browser shows WP setup page | ✔                      |
+| ALB target healthy          | ✔                      |
+```
+
 
 ---
 
@@ -687,9 +863,32 @@ if (is_wp_error($user)) {
 
 ## 13. API Gateway → ALB (VPC Link)
 
-1. Create VPC Link
-2. Select private ALB
-3. Use Link in Integration Request
+###### if ALB is private (for reference)
+
+1. Go to API Gateway → VPC Links → Create VPC Link
+2. Give it a name (e.g., ALB-VPC-Link)
+3. Target NLB/ALB → select your private ALB
+4. Wait until the status becomes AVAILABLE
+
+##### Then, in your API Gateway method:
+
+* Integration Type: HTTP
+
+* Endpoint Type: Private
+
+* Use VPC Link dropdown → select your ALB VPC Link
+
+* Save and Deploy API
+
+###### if ALB is public (for reference)
+
+1. Go to API Gateway → Your API → Method
+2. Integration type: HTTP
+3. Endpoint URL: http://<your-public-ALB-DNS>
+4. Save and Deploy API
+
+##### ✅ That’s it! No VPC Link is needed because your ALB is publicly accessible.
+
 
 ---
 
