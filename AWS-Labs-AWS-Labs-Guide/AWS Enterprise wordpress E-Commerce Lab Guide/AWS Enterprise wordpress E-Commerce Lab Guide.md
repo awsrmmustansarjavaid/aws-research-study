@@ -249,6 +249,128 @@ Create second CloudFront distribution:
 | Cart     | POST   | /cart     | WooCommerce          |
 | Checkout | POST   | /checkout | WooCommerce          |
 
+### WooCommerce REST API
+
+
+### Create a folder /api on your EC2 WordPress server. 
+
+##### Sample files:
+
+#### a. products.php
+
+```
+<?php
+// Example: Return list of products
+require_once('wp-load.php');
+
+header('Content-Type: application/json');
+
+$args = array(
+    'post_type' => 'product',
+    'posts_per_page' => 10
+);
+
+$loop = new WP_Query($args);
+$products = array();
+
+while ($loop->have_posts()) : $loop->the_post();
+    global $product;
+    $products[] = array(
+        'id' => $product->get_id(),
+        'name' => $product->get_name(),
+        'price' => $product->get_price(),
+        'link' => get_permalink($product->get_id())
+    );
+endwhile;
+
+echo json_encode($products);
+?>
+```
+
+#### b. cart.php
+
+```
+<?php
+require_once('wp-load.php');
+header('Content-Type: application/json');
+
+session_start();
+
+$product_id = $_POST['product_id'];
+$quantity = $_POST['quantity'];
+
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = array();
+}
+
+$_SESSION['cart'][$product_id] = $quantity;
+
+echo json_encode(array('message' => 'Product added to cart', 'cart' => $_SESSION['cart']));
+?>
+```
+
+#### c. checkout.php
+
+```
+<?php
+require_once('wp-load.php');
+header('Content-Type: application/json');
+
+session_start();
+
+if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
+    echo json_encode(array('error' => 'Cart is empty'));
+    exit;
+}
+
+// Here you could integrate payment gateway or order creation
+$order_status = 'success';
+$order_id = rand(1000, 9999); // Sample order ID
+
+// Clear cart
+$_SESSION['cart'] = array();
+
+echo json_encode(array('message' => 'Order placed', 'order_id' => $order_id, 'status' => $order_status));
+?>
+```
+
+#### d. login.php
+
+```
+<?php
+require_once('wp-load.php');
+header('Content-Type: application/json');
+
+$username = $_POST['username'];
+$password = $_POST['password'];
+
+$user = wp_signon(array(
+    'user_login' => $username,
+    'user_password' => $password,
+    'remember' => true
+));
+
+if (is_wp_error($user)) {
+    echo json_encode(array('error' => $user->get_error_message()));
+} else {
+    echo json_encode(array('message' => 'Login successful', 'user_id' => $user->ID));
+}
+?>
+```
+
+#### Integration Tips
+
+* Place all /api/*.php files in WordPress root or a /api folder.
+
+* Use API Gateway → HTTP integration → point to http://<ALB-DNS>/api/<file>.php.
+
+* For production lab testing, secure APIs using Cognito Authorizer.
+
+* Update WordPress permalinks to Plain to ensure PHP API endpoints work.
+
+
+
+
 ### Steps
 
 1. Create REST API
