@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cart - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html">Home</a> | <a href="checkout.html">Checkout</a>
+    </header>
+
+    <main>
+        <h2>Your Cart</h2>
+        <div id="cart" class="cart-items"></div>
+        <button onclick="checkout()">Checkout</button>
+        <p id="checkout-message"></p>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        function loadCart() {
+            fetch('api/cart.php')
+            .then(res => res.json())
+            .then(cart => {
+                const container = document.getElementById('cart');
+                container.innerHTML = '';
+                for (const id in cart) {
+                    container.innerHTML += `<p>Product ID: ${id}, Quantity: ${cart[id]}</p>`;
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+</body>
+</html>

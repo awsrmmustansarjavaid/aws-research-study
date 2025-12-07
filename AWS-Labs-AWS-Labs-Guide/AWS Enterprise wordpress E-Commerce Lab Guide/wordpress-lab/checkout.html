@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html">Home</a> | <a href="cart.html">Cart</a>
+    </header>
+
+    <main>
+        <h2>Checkout</h2>
+        <button id="checkout-btn">Place Order</button>
+        <p id="checkout-msg"></p>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.getElementById('checkout-btn').addEventListener('click', function(){
+            fetch('api/checkout.php', {method:'POST'})
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('checkout-msg').innerText = data.message || data.error;
+            });
+        });
+    </script>
+</body>
+</html>

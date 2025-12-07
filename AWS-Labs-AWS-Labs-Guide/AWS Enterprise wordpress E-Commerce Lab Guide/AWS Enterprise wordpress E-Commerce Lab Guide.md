@@ -195,6 +195,309 @@ Optionally pull secrets using SSM init script.
 
 Uploads will now move automatically to S3.
 
+
+### Folder Structure
+
+wordpress-lab/
+├── index.html        ← Homepage
+├── product.html      ← Product listing page
+├── cart.html         ← Shopping cart page
+├── checkout.html     ← Checkout page
+├── login.html        ← Login page
+├── css/              ← Molla CSS
+├── js/               ← Molla JS + custom API integration JS
+├── assets/           ← Images, fonts, icons
+└── api/
+    ├── products.php
+    ├── cart.php
+    ├── checkout.php
+    └── login.php
+
+
+### front-end files
+
+#### 1. index.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-left">
+                <!-- Store Logo + Name -->
+                <a href="index.html" class="logo">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3144/3144456.png" 
+                         alt="Charlie Store" width="50" style="vertical-align: middle;">
+                    <span style="font-size: 24px; font-weight: bold; margin-left: 10px;">Charlie Store</span>
+                </a>
+            </div>
+            <div class="header-right">
+                <nav>
+                    <ul class="menu">
+                        <li><a href="product.html">Products</a></li>
+                        <li><a href="cart.html">Cart</a></li>
+                        <li><a href="checkout.html">Checkout</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="featured-products">
+            <h2>Featured Products</h2>
+            <div id="products" class="products-grid"></div>
+        </section>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('api/products.php')
+            .then(res => res.json())
+            .then(products => {
+                const container = document.getElementById('products');
+                container.innerHTML = '';
+                products.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'product';
+                    div.innerHTML = `
+                        <div class="product-media">
+                            <img src="https://via.placeholder.com/200x200.png?text=${p.name}" alt="${p.name}">
+                        </div>
+                        <div class="product-body">
+                            <h3 class="product-title">${p.name}</h3>
+                            <div class="product-price">$${p.price}</div>
+                            <a href="cart.html" class="btn btn-primary" onclick="addToCart(${p.id})">Add to Cart</a>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+#### 2. product.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Products - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html">Home</a> | <a href="cart.html">Cart</a>
+    </header>
+
+    <main>
+        <h2>All Products</h2>
+        <div id="products" class="products-grid"></div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('api/products.php')
+            .then(res => res.json())
+            .then(products => {
+                const container = document.getElementById('products');
+                container.innerHTML = '';
+                products.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'product';
+                    div.innerHTML = `
+                        <h3>${p.name}</h3>
+                        <p>Price: $${p.price}</p>
+                        <button onclick="addToCart(${p.id})">Add to Cart</button>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+#### 3. cart.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cart - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html">Home</a> | <a href="checkout.html">Checkout</a>
+    </header>
+
+    <main>
+        <h2>Your Cart</h2>
+        <div id="cart" class="cart-items"></div>
+        <button onclick="checkout()">Checkout</button>
+        <p id="checkout-message"></p>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        function loadCart() {
+            fetch('api/cart.php')
+            .then(res => res.json())
+            .then(cart => {
+                const container = document.getElementById('cart');
+                container.innerHTML = '';
+                for (const id in cart) {
+                    container.innerHTML += `<p>Product ID: ${id}, Quantity: ${cart[id]}</p>`;
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', loadCart);
+    </script>
+</body>
+</html>
+```
+
+#### 4. checkout.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html">Home</a> | <a href="cart.html">Cart</a>
+    </header>
+
+    <main>
+        <h2>Checkout</h2>
+        <button id="checkout-btn">Place Order</button>
+        <p id="checkout-msg"></p>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.getElementById('checkout-btn').addEventListener('click', function(){
+            fetch('api/checkout.php', {method:'POST'})
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('checkout-msg').innerText = data.message || data.error;
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+#### 5. login.html
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - My Online Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <main>
+        <h2>Login</h2>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p id="login-message"></p>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(e){
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('api/login.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('login-message').innerText = data.message || data.error;
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+#### 6. css/style.css (basic styling)
+
+```
+body { font-family: Arial, sans-serif; margin:20px; }
+header { display:flex; justify-content: space-between; align-items:center; margin-bottom:20px; }
+header a { margin-right:15px; text-decoration:none; color:#333; font-weight:bold; }
+.products-grid { display:flex; flex-wrap:wrap; gap:15px; }
+.product { border:1px solid #ccc; padding:10px; width:200px; text-align:center; }
+button { padding:5px 10px; cursor:pointer; }
+```
+
+#### 7. js/app.js (all API calls)
+
+```
+// Add to Cart
+function addToCart(productId){
+    fetch('api/cart.php', {
+        method:'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: `product_id=${productId}&quantity=1`
+    })
+    .then(res=>res.json())
+    .then(data => { alert(data.message); });
+}
+
+// Checkout
+function checkout(){
+    fetch('api/checkout.php', {method:'POST'})
+    .then(res=>res.json())
+    .then(data => { alert(data.message || data.error); });
+}
+```
+
+#### ✅ Result:
+
+* index.html → central hub with store logo + store name
+
+* Dynamic products, cart, checkout, login integrated via JS API calls
+
+* All other pages (product.html, cart.html, checkout.html, login.html) are ready-to-use
+
+* CSS/JS files handle the styling and API functions
+
+
+
 ---
 
 ## 9. CloudFront for S3 Static Site
