@@ -962,7 +962,7 @@ sudo adduser --home /home/sftpuser --shell /sbin/nologin sftpuser
 sudo passwd sftpuser
 ```
 
-## Step 2 — Prepare Chroot Directory (Required for SFTP Jail)
+## Step 3 — Prepare Chroot Directory (Required for SFTP Jail)
 
 
 The SFTP user will be locked into /home/sftpuser.
@@ -985,7 +985,7 @@ sudo chown root:root /home/sftpuser
 sudo chmod 755 /home/sftpuser
 ```
 
-## Step 3 — Give user access only to uploads directory
+## Step 4 — Give user access only to uploads directory
 
 (The user must not own the chroot root.)
 
@@ -1001,7 +1001,7 @@ sudo chown sftpuser:sftpuser /home/sftpuser/uploads
 sudo chmod 700 /home/sftpuser/uploads
 ```
 
-## Step 4 — Create WordPress Uploads Bind-Mount for SFTP
+## Step 5 — Create WordPress Uploads Bind-Mount for SFTP
 
 This ensures files uploaded via SFTP appear correctly in WordPress.
 
@@ -1017,7 +1017,7 @@ sudo mkdir -p /home/sftpuser/wordpress/wp-content
 sudo mkdir -p /home/sftpuser/wordpress/wp-content/uploads
 ```
 
-## Step 5 — Ensure real WordPress uploads directory exists
+## Step 6 — Ensure real WordPress uploads directory exists
 
 #### Location for Nginx-based WordPress:
 
@@ -1028,7 +1028,7 @@ sudo mkdir -p /usr/share/nginx/html/wp-content/uploads
 sudo chown -R nginx:nginx /usr/share/nginx/html/wp-content/uploads
 ```
 
-## Step 6 — Bind real uploads directory to SFTP uploads directory
+## Step 7 — Bind real uploads directory to SFTP uploads directory
 
 ```
 sudo mount --bind /usr/share/nginx/html/wp-content/uploads /home/sftpuser/wordpress/wp-content/uploads
@@ -1044,7 +1044,7 @@ echo '/usr/share/nginx/html/wp-content/uploads /home/sftpuser/wordpress/wp-conte
 
 ##### Important: The chroot root /home/sftpuser must be owned by root and not writable by others. Only the uploads directory (or specific subdirs) should be owned by the sftp user. We bound only uploads.
 
-## Step 7 — Configure OpenSSH for Chrooted SFTP
+## Step 8 — Configure OpenSSH for Chrooted SFTP
 
 #### Edit SSH config:
 
@@ -1072,7 +1072,7 @@ Match User sftpuser
 ```
 sudo systemctl restart sshd
 ```
-## Step 8 — Harden file permissions for WordPress
+## Step 9 — Harden file permissions for WordPress
 
 ### Make wp-content Writable for WordPress (Uploads, Plugins, Themes)
 
@@ -1136,7 +1136,7 @@ sudo chown -R sftpuser:sftpuser /usr/share/nginx/html/wp-content/uploads
 - Prevents SFTP user from modifying plugins/themes
 
 
-## Step 9 — Test SFTP
+## Step 10 — Test SFTP
 
 #### Connect using command line:
 
