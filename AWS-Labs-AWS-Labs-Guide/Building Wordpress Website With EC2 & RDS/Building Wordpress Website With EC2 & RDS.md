@@ -52,7 +52,7 @@ This setup provides:
 
 # Section 1 — IAM Role and Policies
 
-## Step 1  Create IAM Role for EC2
+### Step 1  Create IAM Role for EC2
 
 - Open IAM Console
 
@@ -73,7 +73,7 @@ EC2
 
 - Click Next.
 
-### Attach Required Policies
+#### Attach Required Policies
 
 You need two policies to fully monitor EC2 + CloudWatch Agent.
 
@@ -107,7 +107,7 @@ AmazonS3ReadOnlyAccess
 
 Only add this if you know you need it.
 
-### Name the Role
+#### Name the Role
 
 Use a clear name:
 
@@ -123,7 +123,7 @@ EC2-CloudWatchAgent-Role
 
 # Section 2 — Launch EC2 Instance
 
-## Step 1 Network & Security Group plan:
+### Step 1 Network & Security Group plan:
 
 
 - **EC2-SG (web-server-sg)** — inbound:
@@ -161,7 +161,7 @@ EC2-CloudWatchAgent-Role
 
 
 
-### Attach IAM Role to Your EC2 Instance (if you forgot to do so during launch)
+#### Attach IAM Role to Your EC2 Instance (if you forgot to do so during launch)
 
 - Go to EC2 → Instances → Select your WordPress EC2 → Actions → Security → Modify IAM Role
 
@@ -170,23 +170,133 @@ EC2-CloudWatchAgent-Role
 ```
 - save
 
-## Step 2 Connect:
+### Step 2 Connect:
 
 
 ```
 ssh -i yourkey.pem ec2-user@<EC2-PUBLIC-IP>
 ```
 
-## Step 3 — Install Nginx, PHP-FPM & Required Packages
+## Method 1 — Install apache, PHP-FPM & Required Packages
 
+### Step 1 — Install apache, PHP-FPM & Required Packages
 
-### Update
+#### Update
 
 ```
 sudo dnf update -y
 ```
 
-### Install Nginx
+#### Install & Start Apache
+
+```
+sudo yum install httpd -y
+```
+
+```
+sudo systemctl start httpd
+```
+
+```
+sudo systemctl enable httpd
+```
+
+#### Now test in browser:
+
+```
+http://YOUR_PUBLIC_IP
+```
+
+**You should see Apache test page ✅**
+
+#### Fix Permissions (Very Important for WordPress)
+
+```
+sudo chown -R apache:apache /var/www/html
+```
+
+```
+sudo chmod -R 755 /var/www
+```
+
+#### Install PHP for WordPress
+
+```
+sudo yum install php php-mysqlnd php-fpm -y
+```
+
+```
+sudo systemctl restart httpd
+```
+
+#### Confirm Security Group
+
+**Make sure your EC2 Security Group has:**
+
+```
+✅ HTTP – Port 80 – 0.0.0.0/0
+✅ HTTPS – Port 443 – 0.0.0.0/0 (optional)
+```
+
+#### WordPress Directory
+
+```
+cd /tmp
+```
+
+```
+wget https://wordpress.org/latest.tar.gz
+```
+
+```
+tar -xzf latest.tar.gz
+```
+
+```
+sudo cp -r wordpress/* /var/www/html/
+```
+
+#### Set permissions
+
+```
+sudo chown -R apache:apache /var/www/html
+```
+
+```
+sudo chmod -R 755 /var/www
+```
+
+```
+sudo systemctl restart httpd
+```
+
+#### Now Open WordPress
+
+Go to browser:
+
+```
+http://YOUR_PUBLIC_IP
+```
+
+**You should see:**
+
+##### ✅ WordPress setup screen
+
+***
+
+
+# Method 2 — Install Nginx, PHP-FPM & Required Packages
+
+### Step 1 — Install Nginx, PHP-FPM & Required Packages
+
+
+#### Update
+
+```
+sudo dnf update -y
+```
+
+#### Install Nginx
 
 ```
 sudo dnf install -y nginx
