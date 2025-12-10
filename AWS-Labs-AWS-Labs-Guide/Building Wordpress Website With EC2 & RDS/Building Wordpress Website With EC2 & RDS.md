@@ -1,5 +1,9 @@
-# AWS Enterprise E-Commerce Lab Guide  
-## Building a WordPress Website Using EC2 + RDS MySQL (Enterprise-Ready Architecture)
+# AWS Hands-on Lab Guide 
+
+## ✅ AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
+
+
+### Architecture Designer: Charlie
 
 ---
 
@@ -7,10 +11,15 @@
 
 This hands-on AWS lab guides you through building a production-style WordPress architecture using:
 
-- **Amazon EC2** → Hosts WordPress (Nginx + PHP-FPM)  
-- **Amazon RDS (MySQL)** → Secure managed database  
-- **Security Groups** → Controlled network access  
-- **Linux + Bash** → Server configuration  
+- Amazon EC2 (Amazon Linux 2023) running Nginx + PHP-FPM hosting WordPress
+
+- Amazon RDS MySQL (private, only accessible by EC2 SG)
+
+- Secure SFTP-only user (chrooted) for uploading WordPress assets
+
+- CloudWatch Agent on EC2 to send metrics & log files (nginx, php-fpm, system)
+
+- Full verification checks and troubleshooting steps
 
 This setup provides:
 
@@ -33,6 +42,7 @@ This setup provides:
 2. EC2 → Amazon RDS (MySQL database)  
 3. EC2 security group allows HTTP/HTTPS  
 4. RDS security group allows port **3306 only from EC2-SG**  
+5. SFTP → Wordpress
 
 ---
 
@@ -41,6 +51,26 @@ This setup provides:
 ---
 
 # Step 1 — Launch EC2 Instance
+
+### Network & Security Group plan:
+
+- **EC2-SG (web-server-sg)** — inbound:
+
+```
+SSH (22) → Your_IP/32 only
+
+HTTP (80) → 0.0.0.0/0 (or restrict to your test IPs)
+
+HTTPS (443) → 0.0.0.0/0 (recommended)
+```
+
+- **RDS-SG (rds-db-sg)** — inbound:
+
+```
+MySQL/Aurora (3306) → Source: web-server-sg (allow from web server SG only)
+```
+- Keep outbound egress open (or default 0.0.0.0/0) for EC2 so it can access RDS endpoint / updates.
+
 
 ### EC2 Config:
 - **AMI:** Amazon Linux 2023  
@@ -87,7 +117,9 @@ sudo dnf install -y php php-fpm php-mysqlnd php-gd php-json php-xml php-mbstring
 sudo systemctl enable --now php-fpm
 ```
 
-Adjust permissions
+### Prepare web root & permissions
+
+We will serve WordPress from /usr/share/nginx/html.
 
 ```
 sudo usermod -a -G nginx ec2-user
@@ -97,27 +129,45 @@ sudo usermod -a -G nginx ec2-user
 sudo chown -R ec2-user:nginx /var/www
 ```
 
+##### Note: The nginx user runs the webserver. We keep the owner nginx:nginx and ensure uploads are writable by nginx or specific sftp user (see SFTP config below).
+
+
+#### Confirm versions:
+
+```
+nginx -v
+```
+
+```
+php -v
+```
+
+
+
 # Step 3 — Launch RDS MySQL
 
-### RDS Settings
+### RDS Recommended Settings
 
 - **Engine:** MySQL 8.x
 
 - **Instance class:** db.t3.micro
 
+- **Storage:** 20 GB
+
 - **Public Access:** NO (private)
 
-- **Initial DB name:** wordpressdb
+- **Initial DB name:** wordpressdb (or wordpressdb)
 
 - **Master User:** wpadmin
 
-- **RDS Security Group**
+- **Master Password:** store securely
+
+- **RDS Security Group** 
 
 - **Inbound:**
 
 ```
-PORT: 3306
-SOURCE: EC2-SG
+rds-db-sg that allows 3306 from web-server-sg
 ```
 
 # Step 4 — Install MySQL Client on EC2
@@ -125,6 +175,13 @@ SOURCE: EC2-SG
 ```
 sudo dnf install -y mariadb105
 ```
+
+#### Confirm versions:
+
+```
+mysql --version
+```
+
 
 ### Connect to RDS:
 
@@ -149,6 +206,9 @@ FLUSH PRIVILEGES;
 ```
 exit
 ```
+##### Note: Use a strong password and store it securely (Secrets Manager recommended for production).
+
+
 
 # Step 5 — Install WordPress
 
@@ -180,6 +240,16 @@ sudo cp -r /tmp/wordpress/* /usr/share/nginx/html/
 sudo chown -R nginx:nginx /usr/share/nginx/html
 ```
 
+```
+sudo find /usr/share/nginx/html -type d -exec chmod 755 {} \;
+```
+
+```
+sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+```
+
+
+
 # Step 6 — Configure wp-config.php
 
 ### Create config:
@@ -189,7 +259,7 @@ cd /usr/share/nginx/html
 ```
 
 ```
-cp wp-config-sample.php wp-config.php
+sudo cp wp-config-sample.php wp-config.php
 ```
 
 ### Edit:
@@ -208,9 +278,16 @@ define( 'DB_HOST', '<RDS-ENDPOINT>' );
 
 ### Add AUTH keys:
 
+Add auth keys (generate unique salts):
+ 
+
 #### Generate keys:
 
+- Open  
+
 https://api.wordpress.org/secret-key/1.1/salt/
+
+in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
 
 ```
 define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
@@ -223,15 +300,33 @@ define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
 define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
 ```
 
-Paste into wp-config.php
+- Paste into wp-config.php
+
+- Save and exit.
+
+- Set proper ownership:
+
+```
+sudo chown nginx:nginx wp-config.php
+```
+
+```
+sudo chmod 640 wp-config.php
+```
+
+
+
 
 # Step 7 — Configure Nginx for WordPress
 
 ### Create config:
 
+#### Method : 1
+
 ```
 sudo nano /etc/nginx/conf.d/wordpress.conf
 ```
+
 
 ### Paste:
 
@@ -258,6 +353,7 @@ server {
 }
 ```
 
+
 ### Test & Restart:
 
 ```
@@ -267,6 +363,48 @@ sudo nginx -t
 ```
 sudo systemctl restart nginx
 ```
+
+#### Method : 2
+
+```
+sudo tee /etc/nginx/conf.d/wordpress.conf > /dev/null <<'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.php index.html index.htm;
+
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_index index.php;
+        # php-fpm socket (default on Amazon Linux 2023)
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # Deny access to wp-config.php
+    location = /wp-config.php {
+        deny all;
+    }
+}
+EOF
+
+# test nginx config and restart
+sudo nginx -t && sudo systemctl restart nginx
+```
+
+
 
 # Step 8 — Start WordPress Installer
 
@@ -289,27 +427,418 @@ http://<EC2-PUBLIC-IP>
 
 ## 🎉 WordPress is now running on EC2 + RDS!
 
-# 9. Security Best Practices
+# Step 9 — Configure SFTP on AWS EC2  WordPress
 
-- EC2 in public subnet → RDS in private subnet
+We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
-- Restrict DB access to EC2-SG
+### Create user and directories
 
-- Use HTTPS with Let’s Encrypt
+#### Create user without shell login
 
-- Store secrets in AWS Secrets Manager
+```
+sudo adduser --home /home/sftpuser --shell /sbin/nologin sftpuser
+```
 
-- Enable automatic backups on RDS
+#### Set password for SFTP user
 
-# 10. Cost Optimization
+```
+sudo passwd sftpuser
+```
 
-- Use t3.micro for learning
+### Prepare Chroot Directory (Required for SFTP Jail)
 
-- Stop RDS/EC2 when not needed
 
-- Use GP3 storage
+The SFTP user will be locked into /home/sftpuser.
 
-- Enable RDS AutoStop
+#### Create main SFTP directory
+
+```
+sudo mkdir -p /home/sftpuser/uploads
+```
+
+#### Root must own the chroot directory
+
+(This is required or SFTP jail will fail.)
+
+```
+sudo chown root:root /home/sftpuser
+```
+
+```
+sudo chmod 755 /home/sftpuser
+```
+
+#### Give user access only to uploads directory
+
+(The user must not own the chroot root.)
+
+```
+sudo mkdir -p /home/sftpuser/uploads
+```
+
+```
+sudo chown sftpuser:sftpuser /home/sftpuser/uploads
+```
+
+```
+sudo chmod 700 /home/sftpuser/uploads
+```
+
+### Create WordPress Uploads Bind-Mount for SFTP
+
+This ensures files uploaded via SFTP appear correctly in WordPress.
+
+#### Prepare directories inside chroot jail
+
+```
+sudo mkdir -p /home/sftpuser/wordpress
+```
+```
+sudo mkdir -p /home/sftpuser/wordpress/wp-content
+```
+```
+sudo mkdir -p /home/sftpuser/wordpress/wp-content/uploads
+```
+
+#### Ensure real WordPress uploads directory exists
+
+#### Location for Nginx-based WordPress:
+
+```
+sudo mkdir -p /usr/share/nginx/html/wp-content/uploads
+```
+```
+sudo chown -R nginx:nginx /usr/share/nginx/html/wp-content/uploads
+```
+
+#### Bind real uploads directory to SFTP uploads directory
+
+```
+sudo mount --bind /usr/share/nginx/html/wp-content/uploads /home/sftpuser/wordpress/wp-content/uploads
+```
+
+#### Make the bind-mount permanent at boot
+
+Add this line to /etc/fstab:
+
+```
+echo '/usr/share/nginx/html/wp-content/uploads /home/sftpuser/wordpress/wp-content/uploads none bind 0 0' | sudo tee -a /etc/fstab
+```
+
+##### Important: The chroot root /home/sftpuser must be owned by root and not writable by others. Only the uploads directory (or specific subdirs) should be owned by the sftp user. We bound only uploads.
+
+#### Configure OpenSSH for Chrooted SFTP
+
+#### Edit SSH config:
+
+```
+sudo nano /etc/ssh/sshd_config
+```
+
+#### Add these lines at the bottom:
+
+```
+# Enable internal SFTP subsystem
+Subsystem sftp internal-sftp
+
+# Chrooted SFTP configuration
+Match User sftpuser
+    ChrootDirectory /home/sftpuser
+    ForceCommand internal-sftp
+    PasswordAuthentication yes
+    X11Forwarding no
+    AllowTcpForwarding no
+```
+
+### Restart SSH Service
+
+```
+sudo systemctl restart sshd
+```
+
+### Test SFTP
+
+#### Connect using command line:
+
+```
+sftp sftpuser@<EC2-PUBLIC-IP>
+```
+
+#### List available directories:
+
+```
+ls
+```
+**You should see:**
+
+```
+uploads
+wordpress
+```
+
+#### Test file upload:
+
+```
+put testfile.jpg
+```
+
+#### TVerify on server:
+
+```
+ls /usr/share/nginx/html/wp-content/uploads
+```
+
+**You should see testfile.jpg.**
+
+
+
+# Step 10 — Harden file permissions for WordPress
+
+WordPress recommends (for many Nginx setups):
+
+```
+# ensure wp-content writable by webserver for uploads and plugin installs
+sudo chown -R nginx:nginx /usr/share/nginx/html/wp-content
+# but keep wp-config owned and non-world-readable
+sudo chown nginx:nginx /usr/share/nginx/html/wp-config.php
+sudo chmod 640 /usr/share/nginx/html/wp-config.php
+```
+
+##### Note: If you want plugins/themes edited by sftpuser, consider granting sftpuser access to upload only (we already used uploads).
+
+
+# Step 11 — Install & configure CloudWatch agent (metrics + logs)
+
+- Ensure EC2 has IAM role with CloudWatchAgentServerPolicy.
+
+- Install agent
+
+
+###### Download and install the CloudWatch agent package (Amazon Linux 2023)
+
+```
+sudo dnf install -y amazon-cloudwatch-agent
+```
+
+- Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics):
+
+```
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "metrics": {
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "mem": { "measurement": ["mem_used_percent"], "metrics_collection_interval": 60 },
+      "cpu": { "measurement": ["cpu_usage_idle","cpu_usage_user","cpu_usage_system"], "metrics_collection_interval": 60 },
+      "disk": { "measurement": ["used_percent"], "resources": ["/"], "metrics_collection_interval": 60 }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "wordpress-nginx-access",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "wordpress-nginx-error",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/php-fpm/www-error.log",
+            "log_group_name": "wordpress-phpfpm-error",
+            "log_stream_name": "{instance_id}"
+          },
+          {
+            "file_path": "/var/log/messages",
+            "log_group_name": "wordpress-system-messages",
+            "log_stream_name": "{instance_id}"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:
+
+```
+php -i | grep error_log
+# or inspect /etc/php-fpm.d/www.conf for 'error_log'
+sudo grep -R "error_log" /etc/php*
+```
+
+- Start CloudWatch agent
+
+```
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+    -s
+```
+
+- Confirm agent status:
+
+```
+sudo systemctl status amazon-cloudwatch-agent
+```
+
+```
+sudo tail -n 100 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+```
+
+- **Verify CloudWatch in AWS Console**
+
+- **Logs:** CloudWatch Logs → check wordpress-nginx-access, wordpress-nginx-error, etc.
+
+- **Metrics:** CloudWatch → Metrics → CWAgent or the metrics you configured.
+
+
+# Step 12 Troubleshooting quick commands
+
+
+### Nginx config test / restart:
+
+```
+sudo nginx -t
+```
+
+```
+sudo systemctl restart nginx
+```
+
+```
+sudo journalctl -u nginx -n 200
+```
+
+### PHP-FPM restart & status:
+
+
+```
+sudo systemctl restart php-fpm
+```
+
+```
+sudo systemctl status php-fpm
+```
+
+```
+sudo journalctl -u php-fpm -n 200
+```
+
+### Check connectivity to RDS:
+
+```
+mysql -h <RDS-ENDPOINT> -u wordpressuser -p -e "SHOW DATABASES;"
+```
+
+### Tail logs:
+
+```
+sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
+```
+### CloudWatch agent logs:
+
+```
+sudo tail -n 200 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+```
+
+# Step 13 Verification Tests
+
+Run these steps and record the outputs/screenshots.
+
+### Web server & PHP
+
+```
+curl -I http://localhost
+# Response should include HTTP/1.1 200 OK or 302 redirect to /wp-admin/install.php
+php -v
+nginx -v
+```
+
+### Database connectivity test from EC2
+
+```
+mysql -h <RDS-ENDPOINT> -u wordpressuser -p -e "SELECT USER(), CURRENT_DATE(), VERSION();"
+# You should see user and server version without errors
+```
+
+### WordPress GUI test
+
+Open in browser:
+
+```
+http://<EC2-PUBLIC-IP>/
+```
+
+- The WordPress site loads → run the installer if not already done.
+
+- Login to WP Admin (/wp-admin) with credentials created earlier.
+
+- Upload media via WP Dashboard → Media → Add New. File should appear in /usr/share/nginx/html/wp-content/uploads/... and also visible in SFTP.
+
+
+### SFTP test (from your workstation)
+
+```
+sftp sftpuser@<EC2-PUBLIC-IP>
+# then
+cd wordpress/wp-content/uploads
+put test-sftp.txt
+ls -l
+```
+File should be visible in WordPress Media or at least in /usr/share/nginx/html/wp-content/uploads.
+
+### CloudWatch verification
+
+- In AWS Console → CloudWatch → Logs → confirm entries appear for:
+```
+
+wordpress-nginx-access (access logs)
+
+wordpress-nginx-error (errors)
+```
+
+- In CloudWatch Metrics → check memory, cpu, disk metrics are being reported for your instance.
+
+### Permissions & Security checks
+
+#### Verify wp-config.php is not world-readable:
+
+```
+ls -l /usr/share/nginx/html/wp-config.php
+# should be -rw-r----- (640) or similar
+```
+
+#### Verify ChrootDirectory ownership:
+
+```
+ls -ld /home/sftpuser
+# should be owned by root:root and 755, /home/sftpuser/uploads owned by sftpuser
+```
+
+### Final functional test — upload and serve
+
+- Upload an image file via SFTP to wordpress/wp-content/uploads/<YYYY>/<MM>/ (or uploads/).
+
+- On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
+
+- Insert the image into a post and open the public page to ensure Nginx serves it.
+
+
+
 
 
 
