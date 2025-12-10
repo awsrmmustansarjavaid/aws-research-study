@@ -241,7 +241,12 @@ sudo dnf install -y amazon-cloudwatch-agent
 
 - Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
-Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics):
+```
+sudo nano /opt/aws/amazon-cloudwatch-agent/bin/config.json
+```
+
+**Paste:** Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics)
+
 
 ```
 {
@@ -249,39 +254,61 @@ Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/di
     "metrics_collection_interval": 60,
     "run_as_user": "root"
   },
+
   "metrics": {
     "append_dimensions": {
       "InstanceId": "${aws:InstanceId}"
     },
     "metrics_collected": {
-      "mem": { "measurement": ["mem_used_percent"], "metrics_collection_interval": 60 },
-      "cpu": { "measurement": ["cpu_usage_idle","cpu_usage_user","cpu_usage_system"], "metrics_collection_interval": 60 },
-      "disk": { "measurement": ["used_percent"], "resources": ["/"], "metrics_collection_interval": 60 }
+      "cpu": {
+        "measurement": [
+          "cpu_usage_idle",
+          "cpu_usage_user",
+          "cpu_usage_system"
+        ],
+        "metrics_collection_interval": 60
+      },
+      "mem": {
+        "measurement": [
+          "mem_used_percent"
+        ],
+        "metrics_collection_interval": 60
+      },
+      "disk": {
+        "measurement": [
+          "used_percent"
+        ],
+        "resources": [
+          "/"
+        ],
+        "metrics_collection_interval": 60
+      }
     }
   },
+
   "logs": {
     "logs_collected": {
       "files": {
         "collect_list": [
           {
+            "file_path": "/var/log/messages",
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "ec2-system-log"
+          },
+          {
             "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "wordpress-nginx-access",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "nginx-access"
           },
           {
             "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "wordpress-nginx-error",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "nginx-error"
           },
           {
             "file_path": "/var/log/php-fpm/www-error.log",
-            "log_group_name": "wordpress-phpfpm-error",
-            "log_stream_name": "{instance_id}"
-          },
-          {
-            "file_path": "/var/log/messages",
-            "log_group_name": "wordpress-system-messages",
-            "log_stream_name": "{instance_id}"
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "php-fpm-error"
           }
         ]
       }
@@ -290,7 +317,22 @@ Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/di
 }
 ```
 
-Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:
+### 📝 Important Notes
+
+#### ✔️ 1. PHP-FPM Log Path Might Be Different
+
+##### Common paths:
+
+```
+/var/log/php-fpm/error.log
+/var/log/php7.4-fpm.log
+/var/log/php-fpm/www-error.log
+```
+
+
+**Note: Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:**
+
+##### Test it:
 
 ```
 php -i | grep error_log
@@ -298,31 +340,38 @@ php -i | grep error_log
 sudo grep -R "error_log" /etc/php*
 ```
 
-- Start CloudWatch agent
+#### ✔️ 2. Restart CloudWatch Agent
 
 ```
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-    -a fetch-config \
-    -m ec2 \
-    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
-    -s
+sudo systemctl restart amazon-cloudwatch-agent
 ```
-
-- Confirm agent status:
 
 ```
 sudo systemctl status amazon-cloudwatch-agent
 ```
 
+#### ✔️ 3. Logs will now appear like this:
+
+##### Log Group:
+
 ```
-sudo tail -n 100 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
+wordpress-lab
 ```
 
-- **Verify CloudWatch in AWS Console**
+##### Log Streams:
 
-- **Logs:** CloudWatch Logs → check wordpress-nginx-access, wordpress-nginx-error, etc.
+```
+ec2-system-log
+nginx-access
+nginx-error
+php-fpm-error
+```
 
-- **Metrics:** CloudWatch → Metrics → CWAgent or the metrics you configured.
+**And metrics will appear automatically under EC2 → Monitoring and CloudWatch → Metrics.**
+
+
+
+
 
 ---
 
