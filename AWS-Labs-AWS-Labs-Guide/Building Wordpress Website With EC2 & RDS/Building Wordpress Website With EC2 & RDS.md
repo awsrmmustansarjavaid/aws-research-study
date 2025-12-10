@@ -177,9 +177,10 @@ EC2-CloudWatchAgent-Role
 ssh -i yourkey.pem ec2-user@<EC2-PUBLIC-IP>
 ```
 
-## Method 1 — Install apache, PHP-FPM & Required Packages
+## Step 2 — Install apache or Nginx, PHP-FPM & Required Packages
 
-### Step 1 — Install apache, PHP-FPM & Required Packages
+### Method 1 — Install apache, PHP-FPM & Required Packages
+
 
 #### Update
 
@@ -282,12 +283,18 @@ http://YOUR_PUBLIC_IP
 
 ##### ✅ WordPress setup screen
 
+#### Check Your Web Directory
+
+```
+ls -lah /var/www/html
+```
+
+
+
 ***
 
 
-# Method 2 — Install Nginx, PHP-FPM & Required Packages
-
-### Step 1 — Install Nginx, PHP-FPM & Required Packages
+### Method 2 — Install Nginx, PHP-FPM & Required Packages
 
 
 #### Update
