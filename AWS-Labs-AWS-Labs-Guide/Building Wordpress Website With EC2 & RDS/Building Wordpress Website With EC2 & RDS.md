@@ -609,7 +609,79 @@ sudo chmod 640 /usr/share/nginx/html/wp-config.php
 
 # Step 11 — Install & configure CloudWatch agent (metrics + logs)
 
-- Ensure EC2 has IAM role with CloudWatchAgentServerPolicy.
+### Create IAM Role for EC2
+
+- Open IAM Console
+
+- AWS Console → IAM → Roles → Create Role
+
+- Choose Trusted Entity (Very Important)
+
+- **Select:**
+
+```
+AWS Service
+```
+
+Then choose:
+```
+EC2
+```
+
+- Click Next.
+
+### Attach Required Policies
+
+You need two policies to fully monitor EC2 + CloudWatch Agent.
+
+- **Required Policy 1: CloudWatchAgentServerPolicy**
+
+This allows EC2 to send logs + metrics to CloudWatch.
+
+- Search and select:
+
+```
+CloudWatchAgentServerPolicy
+```
+
+- **Required Policy 2: AmazonSSMManagedInstanceCore**
+
+This allows SSM (Systems Manager) to run and manage CloudWatch Agent easily.
+
+- Search and select:
+
+```
+AmazonSSMManagedInstanceCore
+```
+
+- **(Optional but Recommended)**
+
+If you plan to store custom logs into S3:
+
+```
+AmazonS3ReadOnlyAccess
+```
+
+Only add this if you know you need it.
+
+### Name the Role
+
+Use a clear name:
+
+```
+EC2-CloudWatchAgent-Role
+```
+
+- Click Create Role.
+
+### Attach IAM Role to Your EC2 Instance
+
+- Go to EC2 → Instances → Select your WordPress EC2 → Actions → Security → Modify IAM Role
+
+```
+EC2-CloudWatchAgent-Role
+```
+- save
 
 - Install agent
 
