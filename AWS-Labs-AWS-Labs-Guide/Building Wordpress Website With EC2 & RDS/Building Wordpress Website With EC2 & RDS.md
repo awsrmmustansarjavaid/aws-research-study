@@ -52,7 +52,7 @@ This setup provides:
 
 # Section 1 — IAM Role and Policies
 
-### Step 1  Create IAM Role for EC2
+## Step 1  Create IAM Role for EC2
 
 - Open IAM Console
 
@@ -123,7 +123,7 @@ EC2-CloudWatchAgent-Role
 
 # Section 2 — Launch EC2 Instance
 
-### Step 1 Network & Security Group plan:
+## Step 1 Network & Security Group plan:
 
 
 - **EC2-SG (web-server-sg)** — inbound:
@@ -170,14 +170,14 @@ EC2-CloudWatchAgent-Role
 ```
 - save
 
-### Step 2 Connect:
+## Step 2 Connect:
 
 
 ```
 ssh -i yourkey.pem ec2-user@<EC2-PUBLIC-IP>
 ```
 
-## Step 2 — Install apache or Nginx, PHP-FPM & Required Packages
+## Step 3 — Install apache or Nginx, PHP-FPM & Required Packages
 
 ### Method 1 — Install apache, PHP-FPM & Required Packages
 
@@ -784,7 +784,171 @@ http://<EC2-PUBLIC-IP>
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
-## Step 1 — Create user and directories
+### Method 1 — Configuring SFTP if you are using the simple Apache method
+
+## Step 1 — Confirm SSH/SFTP Works
+
+On EC2, SFTP uses the same service as SSH.
+
+```
+sudo systemctl status sshd
+```
+
+**If not running:**
+
+```
+sudo systemctl start sshd
+```
+
+```
+sudo systemctl enable sshd
+```
+
+## Step 2 — Create user and directories
+
+#### Create user without shell login
+
+```
+sudo adduser sftpuser
+```
+
+```
+sudo passwd sftpuser
+```
+
+#### Add them to Apache group:
+
+```
+sudo usermod -aG apache sftpuser
+```
+
+## Step 3 — Create Upload Directory
+
+```
+sudo mkdir -p /var/www/html/uploads
+```
+
+```
+sudo chown sftpuser:apache /var/www/html/uploads
+```
+
+```
+sudo chmod 755 /var/www/html/uploads
+```
+
+## Step 4 — Configure SSH for SFTP-only Access
+
+**Edit SSH config:**
+
+```
+sudo nano /etc/ssh/sshd_config
+```
+
+## Step 5 — Add this at the bottom:
+
+```
+Match User sftpuser
+    ChrootDirectory /var/www
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+    X11Forwarding no
+```
+
+## Step 6 — Fix for Chroot
+
+Chroot directory must be owned by root, not the user.
+
+```
+sudo chown root:root /var/www
+```
+
+```
+sudo chmod 755 /var/www
+```
+
+**Then fix inside directory:**
+
+```
+sudo chown -R sftpuser:apache /var/www/html/uploads
+```
+
+## Step 7 — Restart SSH
+
+```
+sudo systemctl restart sshd
+```
+
+## Step 8 — Open Security Group
+
+- In AWS → EC2 → Security Group:
+
+```
+✅ Allow Port 22 (SSH/SFTP)
+Source: 0.0.0.0/0 or your IP
+```
+
+
+## Step 9 — Test SFTP from Local Machine
+
+**From your local PC:**
+
+```
+sftp sftpuser@YOUR_PUBLIC_IP
+```
+
+**After login:**
+
+```
+cd html/uploads
+put test.jpg
+```
+
+#### If You’re Using FileZilla
+
+**use:**
+```
+| Setting  | Value                             |
+| -------- | --------------------------------- |
+| Protocol | SFTP – SSH File Transfer Protocol |
+| Host     | Your EC2 Public IP                |
+| Username | sftpuser                          |
+| Password | Your password                     |
+| Port     | 22                                |
+```
+
+#### Result
+
+```
+Now:
+✅ Your WordPress runs in browser
+✅ You can upload files securely via SFTP
+✅ Files land directly in uploads folder
+```
+
+
+***
+
+### Method 2 — Configuring SFTP if you are using the Nginx method
+
+## Step 1 — Confirm SSH/SFTP Works
+
+On EC2, SFTP uses the same service as SSH.
+
+```
+sudo systemctl status sshd
+```
+
+**If not running:**
+
+```
+sudo systemctl start sshd
+```
+
+```
+sudo systemctl enable sshd
+```
+
+## Step 2 — Create user and directories
 
 #### Create user without shell login
 
