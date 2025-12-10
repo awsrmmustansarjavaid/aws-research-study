@@ -239,7 +239,9 @@ php -v
 sudo dnf install -y amazon-cloudwatch-agent
 ```
 
-- Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+### Create config file
+
+Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
 ```
 sudo nano /opt/aws/amazon-cloudwatch-agent/bin/config.json
