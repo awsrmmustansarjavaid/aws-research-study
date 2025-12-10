@@ -296,6 +296,7 @@ ls -lah /var/www/html
 
 ### Method 2 — Install Nginx, PHP-FPM & Required Packages
 
+### Step 1 — Installation Web Required Packages:
 
 #### Update
 
@@ -350,7 +351,48 @@ nginx -v
 php -v
 ```
 
-## Step 4 — Download and install the CloudWatch agent package (Amazon Linux 2023)
+### Step 2 — Download WordPress:
+
+```
+cd /tmp
+```
+
+```
+curl -O https://wordpress.org/latest.tar.gz
+```
+
+```
+tar -xzf latest.tar.gz
+```
+
+## Step 3 — Move files to Nginx root:
+
+```
+sudo rm -rf /usr/share/nginx/html/*
+```
+
+```
+sudo cp -r /tmp/wordpress/* /usr/share/nginx/html/
+```
+
+```
+sudo chown -R nginx:nginx /usr/share/nginx/html
+```
+
+```
+sudo find /usr/share/nginx/html -type d -exec chmod 755 {} \;
+```
+
+```
+sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+```
+
+
+
+
+
+
+# Section 3 — Download and install the CloudWatch agent package (Amazon Linux 2023)
 
 ```
 sudo dnf install -y amazon-cloudwatch-agent
@@ -494,7 +536,7 @@ php-fpm-error
 
 ---
 
-# Section 3 — Launch RDS MySQL
+# Section 4 — Launch RDS MySQL
 
 ## Step 1 — RDS Recommended Settings
 
@@ -510,7 +552,7 @@ php-fpm-error
 
 - **Master User:** wpadmin
 
-- **Master Password:** store securely
+- **Master Password:** wpadmin123
 
 - **RDS Security Group** 
 
@@ -561,47 +603,10 @@ exit
 
 ---
 
-# Section 4 — Install WordPress
-
-## Step 1 — Download:
-
-```
-cd /tmp
-```
-
-```
-curl -O https://wordpress.org/latest.tar.gz
-```
-
-```
-tar -xzf latest.tar.gz
-```
-
-## Step 2 — Move files to Nginx root:
-
-```
-sudo rm -rf /usr/share/nginx/html/*
-```
-
-```
-sudo cp -r /tmp/wordpress/* /usr/share/nginx/html/
-```
-
-```
-sudo chown -R nginx:nginx /usr/share/nginx/html
-```
-
-```
-sudo find /usr/share/nginx/html -type d -exec chmod 755 {} \;
-```
-
-```
-sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
-```
+# Section 5 — Configure WordPress (for both methods)
 
 
-
-## Step 3 — Configure wp-config.php
+## Step 1 — Configure wp-config.php
 
 ### Create config:
 
@@ -668,7 +673,7 @@ sudo chmod 640 wp-config.php
 
 ---
 
-# Section 5 — Configure Nginx for WordPress
+# Section 6 — Configure Nginx for WordPress (only for Nginx methods)
 
 ## Step 1 — Create config:
 
@@ -780,7 +785,7 @@ http://<EC2-PUBLIC-IP>
 
 ---
 
-# Section 6 —  Configure SFTP on AWS EC2  WordPress
+# Section 7 —  Configure SFTP on AWS EC2  WordPress
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
@@ -1247,7 +1252,7 @@ ls /usr/share/nginx/html/wp-content/uploads
 
 ---
 
-# Section 7 —  Troubleshooting quick commands
+# Section 8 —  Troubleshooting quick commands
 
 
 ## Troubleshooting 1 — Nginx config test / restart:
@@ -1296,7 +1301,7 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 sudo tail -n 200 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
 ```
 
-# Section 8 —  Verification Tests
+# Section 9 —  Verification Tests
 
 Run these steps and record the outputs/screenshots.
 
