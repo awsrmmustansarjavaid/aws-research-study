@@ -844,14 +844,53 @@ sudo chmod 755 /var/www/html/uploads
 sudo nano /etc/ssh/sshd_config
 ```
 
+### Ensure it says:
+
+```
+PasswordAuthentication yes
+ChallengeResponseAuthentication yes
+KbdInteractiveAuthentication yes
+```
+
+
 ## Step 5 — Add this at the bottom:
 
 ```
 Match User sftpuser
-    ChrootDirectory /var/www
+    PasswordAuthentication yes
+    AuthenticationMethods password
     ForceCommand internal-sftp
-    AllowTcpForwarding no
+    ChrootDirectory /home/sftpuser
+    AllowTCPForwarding no
     X11Forwarding no
+```
+**Note: This overrides the EC2 Instance Connect defaults.**
+
+- **Save & close.**
+
+
+### Check sftpuser shell
+
+```
+grep sftpuser /etc/passwd
+```
+
+###### You MUST see:
+
+```
+sftpuser:x:1001:1001::/home/sftpuser:/usr/sbin/nologin
+```
+
+###### If NOT, set it:
+
+```
+sudo usermod -s /usr/sbin/nologin sftpuser
+```
+
+###### OR:
+
+```
+sudo usermod -s /bin/false sftpuser
 ```
 
 ## Step 6 — Fix for Chroot
@@ -862,15 +901,42 @@ Chroot directory must be owned by root, not the user.
 sudo chown root:root /var/www
 ```
 
+or 
+
+```
+sudo chown root:root /home/sftpuser
+```
+
 ```
 sudo chmod 755 /var/www
 ```
+or
+
+```
+sudo chmod 755 /home/sftpuser
+```
+
 
 **Then fix inside directory:**
 
 ```
 sudo chown -R sftpuser:apache /var/www/html/uploads
 ```
+
+or
+
+```
+sudo mkdir -p /home/sftpuser/upload
+```
+
+```
+sudo chown sftpuser:sftpuser /home/sftpuser/upload
+```
+
+
+
+
+
 
 ## Step 7 — Restart SSH
 
@@ -896,7 +962,15 @@ Source: 0.0.0.0/0 or your IP
 sftp sftpuser@YOUR_PUBLIC_IP
 ```
 
+**You should now get a password prompt:**
+
+```
+sftpuser@54.157.234.207's password: 
+sftp>
+```
+
 **After login:**
+
 
 ```
 cd html/uploads
