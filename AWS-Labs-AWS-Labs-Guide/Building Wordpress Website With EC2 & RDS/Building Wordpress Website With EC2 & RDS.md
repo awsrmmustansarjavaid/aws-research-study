@@ -121,7 +121,7 @@ EC2-CloudWatchAgent-Role
 ---
 
 
-# Section 2 — Launch EC2 Instance
+# Section 2 — Configure WordPress
 
 ## Step 1 Network & Security Group plan:
 
@@ -182,13 +182,13 @@ ssh -i yourkey.pem ec2-user@<EC2-PUBLIC-IP>
 ### Method 1 — Install apache, PHP-FPM & Required Packages
 
 
-#### Update
+## Step 1 — Update
 
 ```
 sudo dnf update -y
 ```
 
-#### Install & Start Apache
+## Step 2 — Install & Start Apache
 
 ```
 sudo yum install httpd -y
@@ -202,7 +202,7 @@ sudo systemctl start httpd
 sudo systemctl enable httpd
 ```
 
-#### Now test in browser:
+## Step 3 — Now test in browser:
 
 ```
 http://YOUR_PUBLIC_IP
@@ -210,7 +210,7 @@ http://YOUR_PUBLIC_IP
 
 **You should see Apache test page ✅**
 
-#### Fix Permissions (Very Important for WordPress)
+## Step 4 — Fix Permissions (Very Important for WordPress)
 
 ```
 sudo chown -R apache:apache /var/www/html
@@ -220,7 +220,7 @@ sudo chown -R apache:apache /var/www/html
 sudo chmod -R 755 /var/www
 ```
 
-#### Install PHP for WordPress
+## Step 5 — Install PHP for WordPress
 
 ```
 sudo yum install php php-mysqlnd php-fpm -y
@@ -239,7 +239,7 @@ sudo systemctl restart httpd
 ✅ HTTPS – Port 443 – 0.0.0.0/0 (optional)
 ```
 
-#### WordPress Directory
+## Step 6 —  WordPress Directory
 
 ```
 cd /tmp
@@ -257,7 +257,7 @@ tar -xzf latest.tar.gz
 sudo cp -r wordpress/* /var/www/html/
 ```
 
-#### Set permissions
+## Step 7 — Set permissions
 
 ```
 sudo chown -R apache:apache /var/www/html
@@ -283,12 +283,81 @@ http://YOUR_PUBLIC_IP
 
 ##### ✅ WordPress setup screen
 
-#### Check Your Web Directory
+## Step 8 — Check Your Web Directory
 
 ```
 ls -lah /var/www/html
 ```
 
+## Step 9 — Configure wp-config.php
+
+### Create config:
+
+```
+cd /var/www/html
+```
+
+```
+sudo cp wp-config-sample.php wp-config.php
+```
+
+### Edit:
+
+```
+sudo nano wp-config.php
+```
+### Update database connection:
+
+```
+define( 'DB_NAME', 'wordpress' );
+define( 'DB_USER', 'wordpressuser' );
+define( 'DB_PASSWORD', 'StrongPassword123!' );
+define( 'DB_HOST', '<RDS-ENDPOINT>' );
+```
+
+### Add AUTH keys:
+
+Add auth keys (generate unique salts):
+ 
+
+#### Generate keys:
+
+- Open  
+
+https://api.wordpress.org/secret-key/1.1/salt/
+
+in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
+
+```
+define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
+define('SECURE_AUTH_KEY',  ':H$M&FvbE6t:EwH5ik/D!@]@%Dv3!-Q^hNH3*O+-$L6c*|');
+define('LOGGED_IN_KEY',    'g9?;b_A BNW[; $9N^E2^jt$LkF 8_^baTmjhp<eE5GUd');
+define('NONCE_KEY',        'G;Wf@|;jzQh>R812&-x^cPoq`tOOu>q)#JVa Y%No%.JpZ[');
+define('AUTH_SALT',        'up^dE)4&x/?]1[thjghhjjhz6Vhiohr(dVMh+d5=R<.l_#l');
+define('SECURE_AUTH_SALT', '@%ka=9?}BQ[m#29D+@jkgjkhjkhjkhkjhkjdTZ`MT{|fypE~');
+define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
+define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
+```
+
+- Paste into wp-config.php
+
+- Save and exit.
+
+#### Set proper ownership:
+
+```
+sudo chown apache:apache wp-config.php
+```
+
+```
+sudo chmod 640 wp-config.php
+```
+
+#### restart apache
+
+```
+sudo systemctl restart httpd php-fpm
+```
 
 
 ***
@@ -387,7 +456,180 @@ sudo find /usr/share/nginx/html -type d -exec chmod 755 {} \;
 sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
 ```
 
+## Step 4 — Configure wp-config.php
 
+### Create config:
+
+```
+cd /usr/share/nginx/html
+```
+
+```
+sudo cp wp-config-sample.php wp-config.php
+```
+
+### Edit:
+
+```
+sudo nano wp-config.php
+```
+### Update database connection:
+
+```
+define( 'DB_NAME', 'wordpress' );
+define( 'DB_USER', 'wordpressuser' );
+define( 'DB_PASSWORD', 'StrongPassword123!' );
+define( 'DB_HOST', '<RDS-ENDPOINT>' );
+```
+
+### Add AUTH keys:
+
+Add auth keys (generate unique salts):
+ 
+
+#### Generate keys:
+
+- Open  
+
+https://api.wordpress.org/secret-key/1.1/salt/
+
+in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
+
+```
+define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
+define('SECURE_AUTH_KEY',  ':H$M&FvbE6t:EwH5ik/D!@]@%Dv3!-Q^hNH3*O+-$L6c*|');
+define('LOGGED_IN_KEY',    'g9?;b_A BNW[; $9N^E2^jt$LkF 8_^baTmjhp<eE5GUd');
+define('NONCE_KEY',        'G;Wf@|;jzQh>R812&-x^cPoq`tOOu>q)#JVa Y%No%.JpZ[');
+define('AUTH_SALT',        'up^dE)4&x/?]1[thjghhjjhz6Vhiohr(dVMh+d5=R<.l_#l');
+define('SECURE_AUTH_SALT', '@%ka=9?}BQ[m#29D+@jkgjkhjkhjkhkjhkjdTZ`MT{|fypE~');
+define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
+define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
+```
+
+- Paste into wp-config.php
+
+- Save and exit.
+
+- Set proper ownership:
+
+```
+sudo chown nginx:nginx wp-config.php
+```
+
+```
+sudo chmod 640 wp-config.php
+```
+
+
+## Step 5 — Create config:
+
+#### Method : 1
+
+```
+sudo nano /etc/nginx/conf.d/wordpress.conf
+```
+
+
+### Paste:
+
+```
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include /etc/nginx/fastcgi.conf;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
+
+
+### Test & Restart:
+
+```
+sudo nginx -t
+```
+
+```
+sudo systemctl restart nginx
+```
+
+#### Method : 2
+
+```
+sudo tee /etc/nginx/conf.d/wordpress.conf > /dev/null <<'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.php index.html index.htm;
+
+    client_max_body_size 50M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_index index.php;
+        # php-fpm socket (default on Amazon Linux 2023)
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # Deny access to wp-config.php
+    location = /wp-config.php {
+        deny all;
+    }
+}
+EOF
+
+# test nginx config and restart
+sudo nginx -t && sudo systemctl restart nginx
+```
+
+
+
+## Step 6 — Start WordPress Installer
+
+
+### Open browser:
+
+```
+http://<EC2-PUBLIC-IP>
+```
+
+### Complete setup:
+
+- **Site Title**
+
+- **Admin user**
+
+- **Admin password**
+
+- **Email**
+
+## 🎉 WordPress is now running on EC2 + RDS!
+
+---
 
 
 
@@ -531,9 +773,6 @@ php-fpm-error
 **And metrics will appear automatically under EC2 → Monitoring and CloudWatch → Metrics.**
 
 
-
-
-
 ---
 
 # Section 4 — Launch RDS MySQL
@@ -603,189 +842,7 @@ exit
 
 ---
 
-# Section 5 — Configure WordPress (for both methods)
-
-
-## Step 1 — Configure wp-config.php
-
-### Create config:
-
-```
-cd /usr/share/nginx/html
-```
-
-```
-sudo cp wp-config-sample.php wp-config.php
-```
-
-### Edit:
-
-```
-sudo nano wp-config.php
-```
-### Update database connection:
-
-```
-define( 'DB_NAME', 'wordpress' );
-define( 'DB_USER', 'wordpressuser' );
-define( 'DB_PASSWORD', 'StrongPassword123!' );
-define( 'DB_HOST', '<RDS-ENDPOINT>' );
-```
-
-### Add AUTH keys:
-
-Add auth keys (generate unique salts):
- 
-
-#### Generate keys:
-
-- Open  
-
-https://api.wordpress.org/secret-key/1.1/salt/
-
-in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
-
-```
-define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
-define('SECURE_AUTH_KEY',  ':H$M&FvbE6t:EwH5ik/D!@]@%Dv3!-Q^hNH3*O+-$L6c*|');
-define('LOGGED_IN_KEY',    'g9?;b_A BNW[; $9N^E2^jt$LkF 8_^baTmjhp<eE5GUd');
-define('NONCE_KEY',        'G;Wf@|;jzQh>R812&-x^cPoq`tOOu>q)#JVa Y%No%.JpZ[');
-define('AUTH_SALT',        'up^dE)4&x/?]1[thjghhjjhz6Vhiohr(dVMh+d5=R<.l_#l');
-define('SECURE_AUTH_SALT', '@%ka=9?}BQ[m#29D+@jkgjkhjkhjkhkjhkjdTZ`MT{|fypE~');
-define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
-define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
-```
-
-- Paste into wp-config.php
-
-- Save and exit.
-
-- Set proper ownership:
-
-```
-sudo chown nginx:nginx wp-config.php
-```
-
-```
-sudo chmod 640 wp-config.php
-```
-
-
----
-
-# Section 6 — Configure Nginx for WordPress (only for Nginx methods)
-
-## Step 1 — Create config:
-
-#### Method : 1
-
-```
-sudo nano /etc/nginx/conf.d/wordpress.conf
-```
-
-
-### Paste:
-
-```
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.php index.html;
-
-    location / {
-        try_files $uri $uri/ /index.php?$args;
-    }
-
-    location ~ \.php$ {
-        include /etc/nginx/fastcgi.conf;
-        fastcgi_pass unix:/run/php-fpm/www.sock;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
-```
-
-
-### Test & Restart:
-
-```
-sudo nginx -t
-```
-
-```
-sudo systemctl restart nginx
-```
-
-#### Method : 2
-
-```
-sudo tee /etc/nginx/conf.d/wordpress.conf > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.php index.html index.htm;
-
-    client_max_body_size 50M;
-
-    location / {
-        try_files $uri $uri/ /index.php?$args;
-    }
-
-    location ~ \.php$ {
-        include /etc/nginx/fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_index index.php;
-        # php-fpm socket (default on Amazon Linux 2023)
-        fastcgi_pass unix:/run/php-fpm/www.sock;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-
-    # Deny access to wp-config.php
-    location = /wp-config.php {
-        deny all;
-    }
-}
-EOF
-
-# test nginx config and restart
-sudo nginx -t && sudo systemctl restart nginx
-```
-
-
-
-## Step 2 — Start WordPress Installer
-
-
-### Open browser:
-
-```
-http://<EC2-PUBLIC-IP>
-```
-
-### Complete setup:
-
-- **Site Title**
-
-- **Admin user**
-
-- **Admin password**
-
-- **Email**
-
-## 🎉 WordPress is now running on EC2 + RDS!
-
----
-
-# Section 7 —  Configure SFTP on AWS EC2  WordPress
+# Section 5 —  Configure SFTP on AWS EC2  WordPress
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
@@ -1252,7 +1309,7 @@ ls /usr/share/nginx/html/wp-content/uploads
 
 ---
 
-# Section 8 —  Troubleshooting quick commands
+# Section 6 —  Troubleshooting quick commands
 
 
 ## Troubleshooting 1 — Nginx config test / restart:
@@ -1301,7 +1358,7 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 sudo tail -n 200 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
 ```
 
-# Section 9 —  Verification Tests
+# Section 7 —  Verification Tests
 
 Run these steps and record the outputs/screenshots.
 
