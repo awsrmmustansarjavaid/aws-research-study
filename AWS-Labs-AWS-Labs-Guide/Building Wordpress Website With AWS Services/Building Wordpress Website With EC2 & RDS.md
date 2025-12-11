@@ -240,6 +240,18 @@ sudo systemctl restart httpd
 
 ###### ✔ Required for WordPress to work properly
 
+#### Confirm Apache + PHP Works
+
+```
+curl -I http://localhost
+```
+
+##### Expected:
+
+```
+HTTP/1.1 200 OK
+Server: Apache
+```
 
 #### Confirm Security Group
 
@@ -456,6 +468,20 @@ nginx -v
 ```
 php -v
 ```
+
+#### Confirm Apache + PHP Works
+
+```
+curl -I http://localhost
+```
+
+##### Expected:
+
+```
+HTTP/1.1 200 OK
+Server: Apache
+```
+
 
 ### Step 2 — Download WordPress:
 
@@ -1793,6 +1819,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
