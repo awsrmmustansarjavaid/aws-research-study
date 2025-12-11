@@ -326,3 +326,4 @@ s3:ListBucket
 
 - **✔ Fully serverless + scalable**
 
+
