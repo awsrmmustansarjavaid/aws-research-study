@@ -673,7 +673,18 @@ sudo nginx -t && sudo systemctl restart nginx
 
 ## Step 6 — Start WordPress Installer
 
+#### Confirm Apache + PHP Works
 
+```
+curl -I http://localhost
+```
+
+##### Expected:
+
+```
+HTTP/1.1 200 OK
+Server: Apache
+```
 ### Open browser:
 
 ```
@@ -1819,6 +1830,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
