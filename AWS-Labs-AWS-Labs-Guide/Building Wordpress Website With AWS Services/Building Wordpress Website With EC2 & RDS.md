@@ -1238,6 +1238,23 @@ sudo adduser sftpuser
 ```
 sudo passwd sftpuser
 ```
+#### Set the user shell to nologin:
+
+```
+sudo usermod -s /usr/sbin/nologin sftpuser
+```
+
+#### Verify:
+
+```
+grep sftpuser /etc/passwd
+```
+
+##### Expected:
+
+```
+sftpuser:x:1001:1001::/home/sftpuser:/usr/sbin/nologin
+```
 
 #### Add them to Apache group:
 
@@ -1245,28 +1262,59 @@ sudo passwd sftpuser
 sudo usermod -aG apache sftpuser
 ```
 
-## Step 3 — Create Upload Directory
+## Step 3 — Prepare Correct Chroot Directory
+
+##### For SFTP chroot, the base directory must be owned by root.
+
+#### Fix ownership:
 
 ```
-sudo mkdir -p /var/www/html/uploads
+sudo chown root:root /var/www
 ```
 
 ```
-sudo chown sftpuser:apache /var/www/html/uploads
+sudo chown root:root /var/www/html
+```
+
+#### Fix permissions:
+
+```
+sudo chmod 755 /var/www
 ```
 
 ```
-sudo chmod 755 /var/www/html/uploads
+sudo chmod 755 /var/www/html
+```
+## Step 4 — Create Writable Upload Directory for SFTP User
+
+```
+sudo mkdir -p /var/www/html/wp-content/uploads
 ```
 
-## Step 4 — Configure SSH for SFTP-only Access
+```
+sudo chown -R sftpuser:apache /var/www/html/wp-content/uploads
+```
 
-**Edit SSH config:**
+```
+sudo chmod -R 775 /var/www/html/wp-content/uploads
+```
+
+##### This directory is writable by:
+
+- **Apache (WordPress uploads)**
+
+- **sftpuser (SFTP uploads)**
+
+
+
+
+## Step 5 — Configure SFTP-only Access in SSHD
+
+#### Open SSH config:
 
 ```
 sudo nano /etc/ssh/sshd_config
 ```
-
 ### Ensure it says:
 
 ```
@@ -1274,8 +1322,6 @@ PasswordAuthentication yes
 ChallengeResponseAuthentication yes
 KbdInteractiveAuthentication yes
 ```
-
-
 ## Step 5 — Add this at the bottom:
 
 ```
@@ -1291,85 +1337,24 @@ Match User sftpuser
 
 - **Save & close.**
 
+- **✔ No shell**
 
-### Check sftpuser shell
+- **✔ No SSH login**
 
-```
-grep sftpuser /etc/passwd
-```
+- **✔ SFTP only**
 
-###### You MUST see:
-
-```
-sftpuser:x:1001:1001::/home/sftpuser:/usr/sbin/nologin
-```
-
-###### If NOT, set it:
-
-```
-sudo usermod -s /usr/sbin/nologin sftpuser
-```
-
-###### OR:
-
-```
-sudo usermod -s /bin/false sftpuser
-```
-
-## Step 6 — Fix for Chroot
-
-Chroot directory must be owned by root, not the user.
-
-```
-sudo chown root:root /var/www
-```
-
-or 
-
-```
-sudo chown root:root /home/sftpuser
-```
-
-```
-sudo chmod 755 /var/www
-```
-or
-
-```
-sudo chmod 755 /home/sftpuser
-```
+- **✔ Chroot locked to WordPress directory**
 
 
-**Then fix inside directory:**
-
-```
-sudo chown -R sftpuser:apache /var/www/html/wp-content/uploads
-```
-
-or
-
-```
-sudo mkdir -p /home/sftpuser/upload
-```
-
-```
-sudo chown sftpuser:sftpuser /home/sftpuser/upload
-```
-
-
-
-
-
-
-## Step 7 — Restart SSH
+## Step 6 — Restart SSH
 
 ```
 sudo systemctl restart sshd
 ```
 
-## Step 8 — Open Security Group
+## Step 7 — Open Security Group
 
-- In AWS → EC2 → Security Group:
+### In AWS → EC2 → Security Group:
 
 ```
 ✅ Allow Port 22 (SSH/SFTP)
@@ -1377,9 +1362,9 @@ Source: 0.0.0.0/0 or your IP
 ```
 
 
-## Step 9 — Test SFTP from Local Machine
+## Step 8 — Test SFTP from Local Machine
 
-**From your local PC:**
+### From your local PC:
 
 ```
 sftp sftpuser@YOUR_PUBLIC_IP
@@ -1399,6 +1384,15 @@ sftp>
 cd html/uploads
 put test.jpg
 ```
+
+### Verify on server:
+
+```
+ls -l /var/www/html/wp-content/uploads
+```
+
+
+
 
 #### If You’re Using FileZilla
 
@@ -1799,7 +1793,6 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
-
 
 
 
