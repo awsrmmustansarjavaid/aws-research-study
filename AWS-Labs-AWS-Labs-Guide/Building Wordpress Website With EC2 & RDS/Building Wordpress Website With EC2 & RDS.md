@@ -1,9 +1,16 @@
-# AWS Hands-on Lab Guide 
+## AWS Hands-on Lab Guide 
 
-## ✅ AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
-
+# AWS Wordpress Configuration Lab Guide (EC2 + S3 + WordPress + RDS & SFTP + AWSTransfer Family (SFTP) + Connector) Architecture
 
 ### Architecture Designer: Charlie
+
+
+
+----
+## ✅ AWS Architecture Method 1  —  AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
+-----
+
+
 
 ---
 
@@ -1660,7 +1667,6 @@ ls /usr/share/nginx/html/wp-content/uploads
 
 **You should see testfile.jpg.**
 
-
 ---
 
 # Section 6 —  Troubleshooting quick commands
@@ -1793,9 +1799,6 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
-
-
-
 
 
 
