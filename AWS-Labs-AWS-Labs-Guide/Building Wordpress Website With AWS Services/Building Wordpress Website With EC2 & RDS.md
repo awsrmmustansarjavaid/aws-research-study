@@ -848,7 +848,7 @@ wordpressdb
 
 ***
 
-#### EC2 User Data Script 1 — WordPress + Apache + PHP + required PHP modules 
+#### EC2 User Data Script 2 — WordPress + Apache + PHP + required PHP modules 
 
 - ✔ Installs Apache
 
