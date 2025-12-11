@@ -447,18 +447,30 @@ sudo systemctl status nginx
 ### Install PHP + Extensions
 
 ```
-sudo dnf install -y php php-fpm php-mysqlnd php-gd php-json php-xml php-mbstring php-opcache php-cli
+sudo dnf install php php-fpm php-mysqlnd php-json php-opcache php-xml php-gd php-curl php-mbstring php-intl php-zip php-cli -y
 ```
 
-### Enable PHP-FPM
+### Start PHP-FPM
 
 ```
-sudo systemctl enable --now php-fpm
+sudo systemctl start php-fpm
+```
+
+```
+sudo systemctl enable php-fpm
+```
+
+```
+sudo systemctl status php-fpm
 ```
 
 ### Prepare web root & permissions
 
 We will serve WordPress from /usr/share/nginx/html.
+
+```
+sudo chown -R nginx:nginx /var/lib/php/
+```
 
 ```
 sudo usermod -a -G nginx ec2-user
@@ -493,6 +505,70 @@ curl -I http://localhost
 HTTP/1.1 200 OK
 Server: Apache
 ```
+#### Remove default config:
+
+```
+sudo rm /etc/nginx/nginx.conf
+```
+
+#### Create new NGINX config:
+
+```
+sudo nano /etc/nginx/nginx.conf
+```
+
+##### Paste exact correct configuration:
+
+```
+user nginx;
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout 65;
+
+    server {
+        listen 80;
+        server_name _;
+
+        root /var/www/wordpress;
+        index index.php index.html index.htm;
+
+        location / {
+            try_files $uri $uri/ /index.php?$args;
+        }
+
+        location ~ \.php$ {
+            include fastcgi.conf;
+            fastcgi_pass unix:/run/php-fpm/www.sock;
+        }
+
+        location ~ /\.ht {
+            deny all;
+        }
+    }
+}
+```
+
+#### Test config:
+
+```
+sudo nginx -t
+```
+
+#### Reload:
+
+```
+sudo systemctl restart nginx
+```
+
 
 
 ### Step 2 — Download WordPress:
@@ -511,24 +587,20 @@ tar -xzf latest.tar.gz
 
 ## Step 3 — Move files to Nginx root:
 
+#### Move to web directory
+
 ```
-sudo rm -rf /usr/share/nginx/html/*
+sudo mv wordpress /var/www/
+```
+
+#### Set permissions
+
+```
+sudo chown -R nginx:nginx /var/www/wordpress
 ```
 
 ```
-sudo cp -r /tmp/wordpress/* /usr/share/nginx/html/
-```
-
-```
-sudo chown -R nginx:nginx /usr/share/nginx/html
-```
-
-```
-sudo find /usr/share/nginx/html -type d -exec chmod 755 {} \;
-```
-
-```
-sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+sudo chmod -R 755 /var/www/wordpress
 ```
 
 ## Step 4 — Configure wp-config.php
@@ -536,7 +608,7 @@ sudo find /usr/share/nginx/html -type f -exec chmod 644 {} \;
 ### Create config:
 
 ```
-cd /usr/share/nginx/html
+cd /var/www/wordpress
 ```
 
 ```
@@ -551,10 +623,11 @@ sudo nano wp-config.php
 ### Update database connection:
 
 ```
-define( 'DB_NAME', 'wordpress' );
-define( 'DB_USER', 'wordpressuser' );
-define( 'DB_PASSWORD', 'StrongPassword123!' );
-define( 'DB_HOST', '<RDS-ENDPOINT>' );
+define('DB_NAME', 'wordpress');
+define('DB_USER', 'wpuser');
+define('DB_PASSWORD', 'WPpassword@123');
+define('DB_HOST', 'localhost');
+define('DB_CHARSET', 'utf8');
 ```
 
 ### Add AUTH keys:
@@ -595,41 +668,19 @@ sudo chown nginx:nginx wp-config.php
 sudo chmod 640 wp-config.php
 ```
 
-
-## Step 5 — Create config:
-
-#### Method : 1
+#### Restart All Services
 
 ```
-sudo nano /etc/nginx/conf.d/wordpress.conf
+sudo systemctl restart nginx
 ```
 
-
-### Paste:
-
 ```
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.php index.html;
-
-    location / {
-        try_files $uri $uri/ /index.php?$args;
-    }
-
-    location ~ \.php$ {
-        include /etc/nginx/fastcgi.conf;
-        fastcgi_pass unix:/run/php-fpm/www.sock;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
+sudo systemctl restart php-fpm
 ```
 
+```
+sudo systemctl restart mariadb
+```
 
 ### Test & Restart:
 
@@ -640,48 +691,6 @@ sudo nginx -t
 ```
 sudo systemctl restart nginx
 ```
-
-#### Method : 2
-
-```
-sudo tee /etc/nginx/conf.d/wordpress.conf > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.php index.html index.htm;
-
-    client_max_body_size 50M;
-
-    location / {
-        try_files $uri $uri/ /index.php?$args;
-    }
-
-    location ~ \.php$ {
-        include /etc/nginx/fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_index index.php;
-        # php-fpm socket (default on Amazon Linux 2023)
-        fastcgi_pass unix:/run/php-fpm/www.sock;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-
-    # Deny access to wp-config.php
-    location = /wp-config.php {
-        deny all;
-    }
-}
-EOF
-
-# test nginx config and restart
-sudo nginx -t && sudo systemctl restart nginx
-```
-
-
 
 ## Step 6 — Start WordPress Installer
 
@@ -1255,6 +1264,7 @@ sudo mysql_secure_installation
 | Remove test DB         | y                         |
 | Reload privilege table | y                         |
 ```
+
 
 
 
