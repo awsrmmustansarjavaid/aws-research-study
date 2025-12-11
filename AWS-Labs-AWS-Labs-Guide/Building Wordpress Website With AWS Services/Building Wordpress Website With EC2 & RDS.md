@@ -428,9 +428,21 @@ sudo dnf update -y
 sudo dnf install -y nginx
 ```
 
+#### Start and enable service
+
+```
+sudo systemctl start nginx
+```
+
 ```
 sudo systemctl enable --now nginx
 ```
+
+```
+sudo systemctl status nginx
+```
+
+**Visit your server public IP → You should see NGINX Welcome Page**
 
 ### Install PHP + Extensions
 
@@ -1201,8 +1213,20 @@ rds-db-sg that allows 3306 from web-server-sg
 
 ## Step 2 — Install MySQL Client on EC2
 
+### Install and Configure MariaDB (MySQL)
+
 ```
-sudo dnf install -y mariadb105
+sudo dnf install mariadb105-server mariadb105 -y
+```
+
+#### Start & enable DB
+
+```
+sudo systemctl start mariadb
+```
+
+```
+sudo systemctl enable mariadb
 ```
 
 #### Confirm versions:
@@ -1210,6 +1234,28 @@ sudo dnf install -y mariadb105
 ```
 mysql --version
 ```
+
+#### Secure DB
+
+##### Run secure installation:
+
+```
+sudo mysql_secure_installation
+```
+
+#### Use the following answers:
+
+```
+| Prompt                 | Answer                    |
+| ---------------------- | ------------------------- |
+| Switch to unix_socket  | n                         |
+| Set root password      | y → Enter strong password |
+| Remove anonymous       | y                         |
+| Disallow remote root   | y                         |
+| Remove test DB         | y                         |
+| Reload privilege table | y                         |
+```
+
 
 
 ### Connect to RDS:
@@ -1830,6 +1876,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
