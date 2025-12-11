@@ -39,7 +39,7 @@ This setup provides:
 
 ## 2. AWS Architecture Diagram
 
-![WordPress on EC2 + RDS Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true)
+![WordPress on EC2 + RDS Diagram]([https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20AWS%20Services/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true))
 
 ---
 
@@ -1799,6 +1799,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
