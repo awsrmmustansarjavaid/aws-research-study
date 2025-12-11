@@ -623,9 +623,9 @@ sudo nano wp-config.php
 ### Update database connection:
 
 ```
-define('DB_NAME', 'wordpress');
-define('DB_USER', 'wpuser');
-define('DB_PASSWORD', 'WPpassword@123');
+define( 'DB_NAME', 'wordpress' );
+define( 'DB_USER', 'wordpressuser' );
+define( 'DB_PASSWORD', 'StrongPassword123!' );
 define('DB_HOST', 'localhost');
 define('DB_CHARSET', 'utf8');
 ```
@@ -1886,6 +1886,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
