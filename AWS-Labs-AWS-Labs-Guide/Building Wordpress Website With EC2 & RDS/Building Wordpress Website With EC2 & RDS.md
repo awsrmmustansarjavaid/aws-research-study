@@ -223,12 +223,16 @@ sudo chmod -R 755 /var/www
 ## Step 5 — Install PHP for WordPress
 
 ```
-sudo yum install php php-mysqlnd php-fpm -y
+sudo dnf install php php-mysqlnd php-fpm php-json php-zip php-gd php-curl php-xml php-mbstring -y
 ```
 
 ```
 sudo systemctl restart httpd
 ```
+###### ✔ Fully compatible modules
+
+###### ✔ Required for WordPress to work properly
+
 
 #### Confirm Security Group
 
@@ -254,7 +258,7 @@ tar -xzf latest.tar.gz
 ```
 
 ```
-sudo cp -r wordpress/* /var/www/html/
+sudo cp -R wordpress/* /var/www/html/
 ```
 
 ## Step 7 — Set permissions
@@ -264,7 +268,11 @@ sudo chown -R apache:apache /var/www/html
 ```
 
 ```
-sudo chmod -R 755 /var/www
+sudo find /var/www/html -type d -exec chmod 755 {} \;
+```
+
+```
+sudo find /var/www/html -type f -exec chmod 644 {} \;
 ```
 
 ```
@@ -315,6 +323,14 @@ define( 'DB_PASSWORD', 'StrongPassword123!' );
 define( 'DB_HOST', '<RDS-ENDPOINT>' );
 ```
 
+##### Example RDS endpoint:
+
+```
+mydb.abcdefghijkl.us-east-1.rds.amazonaws.com
+```
+
+
+
 ### Add AUTH keys:
 
 Add auth keys (generate unique salts):
@@ -346,11 +362,11 @@ define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
 #### Set proper ownership:
 
 ```
-sudo chown apache:apache wp-config.php
+sudo chown apache:apache /var/www/html/wp-config.php
 ```
 
 ```
-sudo chmod 640 wp-config.php
+sudo chmod 640 /var/www/html/wp-config.php
 ```
 
 #### restart apache
@@ -358,6 +374,20 @@ sudo chmod 640 wp-config.php
 ```
 sudo systemctl restart httpd php-fpm
 ```
+
+#### Confirm Apache + PHP Works
+
+```
+curl -I http://localhost
+```
+
+##### Expected:
+
+```
+HTTP/1.1 200 OK
+Server: Apache
+```
+
 
 
 ***
@@ -631,8 +661,166 @@ http://<EC2-PUBLIC-IP>
 
 ---
 
+### Method 3 — EC2 User Data Script (Amazon Linux 2023)
+
+##### Paste into "User Data" section during EC2 launch.
+
+```
+#!/bin/bash
+set -xe
+
+###########################################
+# UPDATE SYSTEM
+###########################################
+dnf update -y
+
+###########################################
+# INSTALL NGINX + PHP + MARIADB CLIENT
+###########################################
+dnf install -y nginx php php-mysqlnd php-fpm php-json php-zip php-gd \
+php-curl php-xml php-mbstring mariadb105
+
+systemctl enable nginx
+systemctl enable php-fpm
+systemctl start nginx
+systemctl start php-fpm
+
+###########################################
+# DOWNLOAD WORDPRESS
+###########################################
+cd /tmp
+wget https://wordpress.org/latest.tar.gz
+tar -xzf latest.tar.gz
+
+mkdir -p /usr/share/nginx/html
+cp -R /tmp/wordpress/* /usr/share/nginx/html/
+
+###########################################
+# SET PERMISSIONS
+###########################################
+chown -R nginx:nginx /usr/share/nginx/html
+find /usr/share/nginx/html -type d -exec chmod 755 {} \;
+find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+
+###########################################
+# CREATE NGINX WORDPRESS CONFIG
+###########################################
+cat << 'EOF' > /etc/nginx/conf.d/wordpress.conf
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.php index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;
+    }
+
+    location ~ \.php$ {
+        include fastcgi.conf;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+    }
+}
+EOF
+
+nginx -t && systemctl restart nginx
+
+###########################################
+# CONFIGURE WORDPRESS wp-config.php TEMPLATE
+###########################################
+cd /usr/share/nginx/html
+cp wp-config-sample.php wp-config.php
+
+# Replace DB name/user/host dynamically using EC2 user data variables
+# *** MODIFY THESE VALUES BELOW BEFORE LAUNCH ***
+DB_NAME="wordpressdb"
+DB_USER="admin"
+DB_PASSWORD="YOUR_RDS_PASSWORD"
+DB_HOST="YOUR_RDS_ENDPOINT"
+
+sed -i "s/database_name_here/$DB_NAME/" wp-config.php
+sed -i "s/username_here/$DB_USER/" wp-config.php
+sed -i "s/password_here/$DB_PASSWORD/" wp-config.php
+sed -i "s/localhost/$DB_HOST/" wp-config.php
+
+###########################################
+# CONFIRM WORDPRESS (NGINX + PHP-FPM) WORKING
+###########################################
+echo "=== TESTING NGINX + WORDPRESS ===" | tee /var/log/wordpress-test.log
+
+# If index.php loads locally → success
+curl -I http://localhost | tee -a /var/log/wordpress-test.log
+
+###########################################
+# CONFIRM RDS MYSQL CONNECTIVITY
+###########################################
+echo "=== TESTING RDS MYSQL CONNECTION ===" | tee -a /var/log/wordpress-test.log
+
+mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -e "SHOW DATABASES;" \
+  | tee -a /var/log/wordpress-test.log || echo "MYSQL CONNECTION FAILED" >> /var/log/wordpress-test.log
+
+###########################################
+# COMPLETE
+###########################################
+echo "SETUP COMPLETE" | tee -a /var/log/wordpress-test.log
+```
+
+##### ✅ What This Script Confirms Automatically
+
+### 1️⃣ WordPress + NGINX Confirmation
+
+#### The script runs:
+
+```
+curl -I http://localhost
+```
+
+#### Expected Output (saved in /var/log/wordpress-test.log):
+
+```
+HTTP/1.1 200 OK
+Server: nginx
+Content-Type: text/html; charset=UTF-8
+```
+
+##### ✔ Means NGINX + PHP-FPM + WordPress is serving web pages properly.
+
+### 2️⃣ RDS MySQL Confirmation
+
+#### The script runs:
+
+```
+mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -e "SHOW DATABASES;"
+```
+
+#### Expected Output:
+
+```
+Database
+information_schema
+mysql
+performance_schema
+wordpressdb
+```
+
+##### ✔ Means EC2 can reach RDS
+
+##### ✔ Credentials are correct
+
+##### ✔ Security Groups / NACLs are not blocking traffic
+
+#### This log also goes into:
+
+```
+/var/log/wordpress-test.log
+```
 
 
+
+
+
+---
 
 # Section 3 — Download and install the CloudWatch agent package (Amazon Linux 2023)
 
