@@ -1343,7 +1343,7 @@ sudo chmod 755 /home/sftpuser
 **Then fix inside directory:**
 
 ```
-sudo chown -R sftpuser:apache /var/www/html/uploads
+sudo chown -R sftpuser:apache /var/www/html/wp-content/uploads
 ```
 
 or
@@ -1799,6 +1799,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
