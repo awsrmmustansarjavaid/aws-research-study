@@ -663,7 +663,30 @@ http://<EC2-PUBLIC-IP>
 
 ### Method 3 — EC2 User Data Script (Amazon Linux 2023)
 
-##### Paste into "User Data" section during EC2 launch.
+#### EC2 User Data Script 1 — NGINX + PHP-FPM + required PHP modules 
+
+- ✔ Installs NGINX + PHP-FPM + required PHP modules
+
+- ✔ Downloads & configures WordPress
+
+- ✔ Sets correct permissions
+
+- ✔ Prepares WordPress to connect to RDS MySQL
+
+- ✔ Confirms NGINX + WordPress is running properly
+
+- ✔ Confirms RDS MySQL connectivity from EC2
+
+#### 📌 Copy/paste directly into EC2 → Advanced Options → User data
+
+##### You MUST replace:
+
+```
+<RDS-ENDPOINT>
+
+<DB_PASSWORD>
+```
+
 
 ```
 #!/bin/bash
@@ -816,7 +839,150 @@ wordpressdb
 /var/log/wordpress-test.log
 ```
 
+***
 
+#### EC2 User Data Script 1 — WordPress + Apache + PHP + required PHP modules 
+
+- ✔ Installs Apache
+
+- ✔ Installs PHP + required modules
+
+- ✔ Downloads and configures WordPress
+
+- ✔ Sets permissions correctly
+
+- ✔ Configures wp-config.php automatically
+
+- ✔ Confirms Apache & PHP
+
+- ✔ Confirms RDS connectivity
+
+#### 📌 Copy/paste directly into EC2 → Advanced Options → User data
+
+##### You MUST replace:
+
+```
+<RDS-ENDPOINT>
+
+<DB_PASSWORD>
+```
+
+```
+#!/bin/bash
+set -e
+
+### =======================================
+###  Step 1 - Update system
+### =======================================
+dnf update -y
+
+### =======================================
+###  Step 2 - Install & enable Apache
+### =======================================
+dnf install httpd -y
+systemctl start httpd
+systemctl enable httpd
+
+### Fix ownership for Apache
+chown -R apache:apache /var/www/
+chmod -R 755 /var/www/
+
+### =======================================
+###  Step 3 - Install PHP + WordPress required modules
+### =======================================
+dnf install php php-mysqlnd php-fpm php-json php-zip php-gd php-curl php-xml php-mbstring -y
+
+# Restart Apache to load PHP
+systemctl restart httpd
+
+### =======================================
+###  Step 4 - Download WordPress
+### =======================================
+cd /tmp
+wget https://wordpress.org/latest.tar.gz
+tar -xzf latest.tar.gz
+cp -R wordpress/* /var/www/html/
+
+### =======================================
+###  Step 5 - Set WordPress permissions
+### =======================================
+chown -R apache:apache /var/www/html
+find /var/www/html -type d -exec chmod 755 {} \;
+find /var/www/html -type f -exec chmod 644 {} \;
+
+systemctl restart httpd
+
+### =======================================
+###  Step 6 - Configure WordPress (wp-config.php)
+### =======================================
+cd /var/www/html
+cp wp-config-sample.php wp-config.php
+
+# Update database settings
+sed -i "s/database_name_here/wordpress/" wp-config.php
+sed -i "s/username_here/wordpressuser/" wp-config.php
+sed -i "s/password_here/<DB_PASSWORD>/" wp-config.php
+sed -i "s/localhost/<RDS-ENDPOINT>/" wp-config.php
+
+### =======================================
+###  Step 7 - Add Secret Keys (Auto fetch from WordPress API)
+### =======================================
+curl -s https://api.wordpress.org/secret-key/1.1/salt/ > /tmp/wp.keys
+sed -i '/AUTH_KEY/d' wp-config.php
+sed -i '/SECURE_AUTH_KEY/d' wp-config.php
+sed -i '/LOGGED_IN_KEY/d' wp-config.php
+sed -i '/NONCE_KEY/d' wp-config.php
+sed -i '/AUTH_SALT/d' wp-config.php
+sed -i '/SECURE_AUTH_SALT/d' wp-config.php
+sed -i '/LOGGED_IN_SALT/d' wp-config.php
+sed -i '/NONCE_SALT/d' wp-config.php
+
+# Append generated keys
+cat /tmp/wp.keys >> wp-config.php
+
+### Secure wp-config.php
+chown apache:apache /var/www/html/wp-config.php
+chmod 640 /var/www/html/wp-config.php
+
+### =======================================
+###  Step 8 - Confirm Apache + PHP
+### =======================================
+echo "===== Apache Test =====" >> /var/log/user-data.log
+curl -I http://localhost >> /var/log/user-data.log
+
+### =======================================
+###  Step 9 - Install MySQL client to test RDS
+### =======================================
+dnf install mariadb105 -y
+
+echo "===== Testing RDS Connection =====" >> /var/log/user-data.log
+mysql -h <RDS-ENDPOINT> -u wordpressuser -p<DB_PASSWORD> -e "SHOW DATABASES;" >> /var/log/user-data.log || echo "RDS Connection Failed" >> /var/log/user-data.log
+
+### Final restart
+systemctl restart httpd
+```
+
+##### ✅ WHAT THIS SCRIPT DOES AUTOMATICALLY
+
+- ✔ Installs Apache (httpd)
+
+- ✔ Installs PHP + required modules
+
+- ✔ Downloads latest WordPress
+
+- ✔ Moves files to /var/www/html/
+
+- ✔ Fixes permissions correctly
+
+- ✔ Generates & injects WordPress security keys
+
+- ✔ Configures RDS MySQL settings
+
+- ✔ Tests Apache
+
+- ✔ Tests RDS connection
+
+- ✔ Logs results to /var/log/user-data.log
 
 
 
