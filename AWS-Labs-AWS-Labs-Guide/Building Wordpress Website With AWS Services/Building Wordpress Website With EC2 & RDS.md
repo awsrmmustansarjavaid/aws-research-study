@@ -2149,6 +2149,40 @@ Password:
 
 Now click:
 
+🔑 Advanced… → SSH → Authentication
+
+Private key file:
+Choose:
+
+```
+C:\Users\musta\Downloads\sftp-user-key.ppk
+```
+
+- **Click OK → Save.**
+
+- **Then click Login.**
+
+🟢 If everything is correct → You will connect instantly.
+❗ If it shows “Permission denied (publickey)”
+
+One of these is wrong:
+
+✔ The private key does not match the public key in AWS
+
+Check on EC2:
+
+```
+cat ~/sftp-user-key.pub
+```
+
+This MUST match the key in:
+
+AWS Transfer Family → Users → wpadmin → SSH Public Keys.
+
+✔ The PPK file was generated from the wrong private key
+
+You must convert the exact private key associated with that .pub.
+
 
 
 
