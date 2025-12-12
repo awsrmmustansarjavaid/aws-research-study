@@ -1243,7 +1243,7 @@ wordpressdb
 
 ***
 
-#### EC2 User Data Script 2 — WordPress + Apache + PHP + required PHP modules 
+#### EC2 User Data Script  — WordPress + Apache + PHP + required PHP modules 
 
 - ✔ Installs Apache
 
@@ -1388,9 +1388,9 @@ systemctl restart httpd
 
 
 
+# 🔭 Section 4 — Configure SFTP On AWS
 
-
-# 🟦 Section 6 —  Configure SFTP on AWS EC2  WordPress
+# 🟦 Section 1 — Configure SFTP on AWS EC2
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
@@ -1850,8 +1850,9 @@ ls /usr/share/nginx/html/wp-content/uploads
 
 
 ***
+### 🟦 SECTION 2 — Configure SFTP ( AWS Transfer Family)
 
-## 🟦 SECTION 3 — Configure AWS Transfer Family (SFTP Server)
+### Step 1 — Configure AWS Transfer Family (SFTP Server)
 
 ### 1️⃣ Create AWS Transfer Family
 
@@ -1877,7 +1878,7 @@ s-xxxxxxxxxxxx.server.transfer.us-east-1.amazonaws.com
 
 ---
 
-## 🟦 SECTION 4 — Create SFTP User
+### Step 2 — Create SFTP User
 
 ### 1️⃣ Create Transfer Family User
 
@@ -1911,11 +1912,44 @@ AWS-Transfer-SFTP-S3-Access
 
 - **✔ Only SSH keys.**
 
+#### 5️⃣ Generate a Valid SSH Key Pair on EC2 for AWS Transfer Family
+
+- **Connect to Your EC2 Instance**
+
+- **Generate SSH Key Pair on EC2**
+
+###### Run the following command on your EC2 instance:
+
+```
+ssh-keygen -t rsa -b 2048 -f sftp-user-key
+```
+
+###### It will ask:
+
+```
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+```
+
+**✔️ You can press Enter twice for no passphrase (easier for SFTP automation).**
+
+
+#### This generates two files in your EC2 home directory:
+
+```
+| File                | Purpose                                            |
+| ------------------- | -------------------------------------------------- |
+| `sftp-user-key`     | **Private key** (Keep safe)                        |
+| `sftp-user-key.pub` | **Public key** (Use in AWS Transfer Family user)** |
+```
+
+
+
 ###### If you want password login → I can provide Lambda-based password auth.
 
 ---
 
-## 🟦 SECTION 5 — Create AWS Transfer Family CONNECTOR
+### Step 3 — Create AWS Transfer Family CONNECTOR
 
 ##### This is the MOST IMPORTANT part.
 
@@ -1963,7 +1997,7 @@ Enable the connector.
 
 ---
 
-## 🟦 SECTION 6 — Link Connector to User
+### Step 4 — Link Connector to User
 
 #### 1️⃣ Now: Transfer Family → Servers → Select your server → Users → Edit user → Add connector
 
@@ -1981,7 +2015,7 @@ SFTP uploads → Connector → S3 bucket
 
 ---
 
-## 🟦 SECTION 7 — Test SFTP Upload to S3
+### Step 5 — Test SFTP Upload to S3
 
 #### 1️⃣ From any SFTP client:
 
@@ -2000,7 +2034,7 @@ ls
 
 ---
 
-## 🟦 SECTION 8 — Connect WordPress to S3
+### Step 6 — Connect WordPress to S3
 
 **Now we integrate WordPress on EC2 with S3 so WordPress uses S3 as storage.**
 
@@ -2070,7 +2104,7 @@ s3:ListBucket
 
 ---
 
-# 🔭 Section 3 — Infrastructure Test & Verification
+# 🔭 Section 4 — Infrastructure Test & Verification
 
 
 
@@ -2204,7 +2238,6 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
-
 
 
 
