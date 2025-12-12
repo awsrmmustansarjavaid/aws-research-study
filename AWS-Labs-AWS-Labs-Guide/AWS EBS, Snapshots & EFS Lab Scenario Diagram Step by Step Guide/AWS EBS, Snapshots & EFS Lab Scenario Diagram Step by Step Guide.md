@@ -38,7 +38,9 @@ You will create:
 
     Extra EBS Volume ----> Snapshot ----> New EBS Volume ----> Attach to EC2
 
+# 🎓 AWS Architecture Diagram
 
+![WordPress on EC2 + RDS Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/AWS%20EBS,%20Snapshots%20&%20EFS%20Lab%20Scenario%20Diagram%20Step%20by%20Step%20Guide/0_veGPUDYqaETLy0P2.png?raw=true)
 ---
 
 ## *3. Step-by-Step Guide (Roman Urdu)*
@@ -138,5 +140,6 @@ df -h
 * EFS → Shared file system for many EC2 (NFS)
 
 ---
+
 
 Agar chaho to is ka *clean diagram image* bhi bana doon.
