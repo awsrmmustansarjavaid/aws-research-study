@@ -148,22 +148,31 @@ Transfer
 
 ```
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject",
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::my-wp-media-bucket-123",
-                "arn:aws:s3:::my-wp-media-bucket-123/*"
-            ]
-        }
-    ]
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Effect":"Allow",
+      "Action":[
+        "s3:ListBucket"
+      ],
+      "Resource":[
+        "arn:aws:s3:::my-transfer-sftp-bucket-12345"
+      ]
+    },
+    {
+      "Effect":"Allow",
+      "Action":[
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:GetObjectAcl",
+        "s3:PutObjectAcl"
+      ],
+      "Resource":[
+        "arn:aws:s3:::my-transfer-sftp-bucket-12345/*"
+      ]
+    }
+  ]
 }
 ```
 
@@ -2195,6 +2204,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
