@@ -1065,8 +1065,7 @@ http://<EC2-PUBLIC-IP>
 
 ### Method 3 — EC2 User Data Script (Amazon Linux 2023)
 
-
-
+![WordPress on EC2 + RDS Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20AWS%20Services/Wordpress%20Ec2%20Userdata.md)
 
 
 ---
