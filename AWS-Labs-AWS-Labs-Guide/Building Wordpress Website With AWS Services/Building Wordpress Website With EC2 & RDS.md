@@ -1918,7 +1918,7 @@ AWS-Transfer-SFTP-S3-Access
 
 - **Generate SSH Key Pair on EC2**
 
-###### Run the following command on your EC2 instance:
+#### Run the following command on your EC2 instance:
 
 ```
 ssh-keygen -t rsa -b 2048 -f sftp-user-key
@@ -1942,6 +1942,41 @@ Enter same passphrase again:
 | `sftp-user-key`     | **Private key** (Keep safe)                        |
 | `sftp-user-key.pub` | **Public key** (Use in AWS Transfer Family user)** |
 ```
+
+
+#### View the Public Key
+
+```
+cat sftp-user-key.pub
+```
+
+##### Output looks like:
+
+```
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7k3.... ec2-user@ip-10-0-0-123
+```
+
+🔹 This line is exactly what you must copy into the AWS Transfer Family user “SSH public key” field.
+
+🔹 It must be on one line only.
+
+#### Add the Key to AWS Transfer Family User
+
+- **Go to Transfer Family → Servers**
+
+- **Open your server → Users → Add user**
+
+- **Username:**  wpadmin
+
+- **Role:**     AWS-Transfer-SFTP-S3-Access
+
+- **Home directory:**   /your-s3-bucket-name
+
+- **Paste the public key from last step** 
+
+- **Click Add user**
+
+🎉 If SSH key format is correct, the user will create successfully.
 
 
 
