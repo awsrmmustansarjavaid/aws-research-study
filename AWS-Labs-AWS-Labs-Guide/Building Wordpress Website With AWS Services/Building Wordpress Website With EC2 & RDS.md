@@ -1065,7 +1065,7 @@ http://<EC2-PUBLIC-IP>
 
 ### Method 3 — EC2 User Data Script (Amazon Linux 2023)
 
-[Wordpress EC2 User Data Script](./Wordpress Ec2 Userdata.md)
+[Wordpress EC2 User Data Script](./Wordpress_Ec2_Userdata.md)
 
 
 ---
