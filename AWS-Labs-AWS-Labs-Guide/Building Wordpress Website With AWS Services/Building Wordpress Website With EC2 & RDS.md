@@ -1074,14 +1074,14 @@ http://<EC2-PUBLIC-IP>
 
 # 🔭 Section 4 — Configure SFTP On AWS
 
-# 🟦 Section 1 — Configure SFTP on AWS EC2
+## 🟦 Section 1 — Configure SFTP on AWS EC2
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
 [Configure SFTP on AWS EC2 Script](./Configure_SFTP_AWS_EC2.md)
 
 
-### 🟦 SECTION 2 — Configure SFTP ( AWS Transfer Family)
+## 🟦 SECTION 2 — Configure SFTP ( AWS Transfer Family)
 
 ### Step 1 — Configure AWS Transfer Family (SFTP Server)
 
@@ -1287,6 +1287,29 @@ Connected to s-03xxxxx.server.transfer.us-east-1.amazonaws.com.
 sftp>
 ```
 
+##### Run this EXACT command on one line If any kind error:
+
+```
+sftp -i "C:\Users\musta\Downloads\sftp-user-key" wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
+```
+
+- **✔ No trailing slash**
+
+- **✔ No new line**
+
+- **✔ Key path in quotes**
+
+- **✔ Everything in one line**
+
+#### 🟢 If the key matches AWS → This will connect instantly
+
+##### If it doesn’t connect, then:
+
+- The private key does not match the public key uploaded to AWS Transfer Family
+
+- Not an encoding issue anymore (because your key prints correctly)
+
+
 
 #### ➡️ Get your SFTP details from AWS Transfer Family
 
@@ -1375,14 +1398,15 @@ This PPK file is what WinSCP will use.
 wpadmin
 ```
 
-Password:
+- **Password:**
 (leave empty)
 
-Now click:
+#### Now click:
 
-🔑 Advanced… → SSH → Authentication
+##### 🔑 Advanced… → SSH → Authentication
 
-Private key file:
+- **Private key file:**
+
 Choose:
 
 ```
@@ -1393,10 +1417,11 @@ C:\Users\musta\Downloads\sftp-user-key.ppk
 
 - **Then click Login.**
 
-🟢 If everything is correct → You will connect instantly.
-❗ If it shows “Permission denied (publickey)”
+#### 🟢 If everything is correct → You will connect instantly.
 
-One of these is wrong:
+#### ❗ If it shows “Permission denied (publickey)”
+
+##### One of these is wrong:
 
 ✔ The private key does not match the public key in AWS
 
@@ -1406,13 +1431,13 @@ Check on EC2:
 cat ~/sftp-user-key.pub
 ```
 
-This MUST match the key in:
+##### This MUST match the key in:
 
-AWS Transfer Family → Users → wpadmin → SSH Public Keys.
+- **AWS Transfer Family → Users → wpadmin → SSH Public Keys.**
 
-✔ The PPK file was generated from the wrong private key
+- **✔ The PPK file was generated from the wrong private key**
 
-You must convert the exact private key associated with that .pub.
+##### You must convert the exact private key associated with that .pub.
 
 
 
@@ -1708,86 +1733,7 @@ sudo tail -n 200 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.l
 
 Run these steps and record the outputs/screenshots.
 
-## Test 1 — Web server & PHP
-
-```
-curl -I http://localhost
-# Response should include HTTP/1.1 200 OK or 302 redirect to /wp-admin/install.php
-php -v
-nginx -v
-```
-
-## Test 2 — Database connectivity test from EC2
-
-```
-mysql -h <RDS-ENDPOINT> -u wordpressuser -p -e "SELECT USER(), CURRENT_DATE(), VERSION();"
-# You should see user and server version without errors
-```
-
-## Test 3 — WordPress GUI test
-
-Open in browser:
-
-```
-http://<EC2-PUBLIC-IP>/
-```
-
-- The WordPress site loads → run the installer if not already done.
-
-- Login to WP Admin (/wp-admin) with credentials created earlier.
-
-- Upload media via WP Dashboard → Media → Add New. File should appear in /usr/share/nginx/html/wp-content/uploads/... and also visible in SFTP.
-
-
-## Test 4 — SFTP test (from your workstation)
-
-```
-sftp sftpuser@<EC2-PUBLIC-IP>
-# then
-cd wordpress/wp-content/uploads
-put test-sftp.txt
-ls -l
-```
-File should be visible in WordPress Media or at least in /usr/share/nginx/html/wp-content/uploads.
-
-## Test 5 — CloudWatch verification
-
-- In AWS Console → CloudWatch → Logs → confirm entries appear for:
-```
-
-wordpress-nginx-access (access logs)
-
-wordpress-nginx-error (errors)
-```
-
-- In CloudWatch Metrics → check memory, cpu, disk metrics are being reported for your instance.
-
-## Test 6 — Permissions & Security checks
-
-#### Verify wp-config.php is not world-readable:
-
-```
-ls -l /usr/share/nginx/html/wp-config.php
-# should be -rw-r----- (640) or similar
-```
-
-#### Verify ChrootDirectory ownership:
-
-```
-ls -ld /home/sftpuser
-# should be owned by root:root and 755, /home/sftpuser/uploads owned by sftpuser
-```
-
-## Test 7 — Final functional test — upload and serve
-
-- Upload an image file via SFTP to wordpress/wp-content/uploads/<YYYY>/<MM>/ (or uploads/).
-
-- On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
-
-- Insert the image into a post and open the public page to ensure Nginx serves it.
-
-
-
+[Testing of Wordpress](./Testing%20Wordpress%20Website%20With%20EC2%20%26%20RDS.md)
 
 
 
