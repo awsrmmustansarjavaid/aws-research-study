@@ -1369,11 +1369,11 @@ You must convert it to a PuTTY/PPK file.
 C:\Users\musta\Downloads\sftp-user-key
 ```
 
-PuTTYgen will import it.
+- **PuTTYgen will import it.**
 
-Click Save private key
+- **Click Save private key**
 
-Save as: 
+- **Save as:**
 
 ```
 sftp-user-key.ppk
@@ -1438,8 +1438,6 @@ cat ~/sftp-user-key.pub
 - **✔ The PPK file was generated from the wrong private key**
 
 ##### You must convert the exact private key associated with that .pub.
-
-
 
 
 
