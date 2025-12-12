@@ -2061,7 +2061,7 @@ sftp>
 
 ##### You need four things:
 
-SFTP Server Endpoint
+- **SFTP Server Endpoint:**
 
 Example:
 
@@ -2069,7 +2069,7 @@ Example:
 s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
 ```
 
-Username
+- **Username:** 
 
 Example:
 
@@ -2077,7 +2077,7 @@ Example:
 wpadmin
 ```
 
-Private Key File (not .pub)
+- **Private Key File (not .pub):**
 
 Example:
 
@@ -2093,7 +2093,7 @@ Must be:
 -----END OPENSSH PRIVATE KEY-----
 ```
 
-Port 22
+- **Port:** 22
 
 
 #### ➡️ Convert your private key to PPK (WinSCP format)
@@ -2101,15 +2101,15 @@ Port 22
 WinSCP cannot use an OpenSSH private key directly.
 You must convert it to a PuTTY/PPK file.
 
-✔ Do this:
+#### ✔ Do this:
 
-Open PuTTYgen (installed with WinSCP).
+- **Open PuTTYgen (installed with WinSCP).**
 
-Click Load
+- **Click Load**
 
-Change file filter to All Files (*.*)
+- **Change file filter to All Files (*.*)**
 
-Select your key:
+- **Select your key:**
 
 ```
 C:\Users\musta\Downloads\sftp-user-key
@@ -2119,13 +2119,38 @@ PuTTYgen will import it.
 
 Click Save private key
 
-Save as:
+Save as: 
 
 ```
 sftp-user-key.ppk
 ```
 
 This PPK file is what WinSCP will use.
+
+
+#### ➡️ Configure WinSCP
+
+- **Open WinSCP → New Site**
+
+- **File protocol:** SFTP
+
+- **Host name:**  s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
+
+- **Port:** 22
+
+- **Username:**
+
+```
+wpadmin
+```
+
+Password:
+(leave empty)
+
+Now click:
+
+
+
 
 
 
