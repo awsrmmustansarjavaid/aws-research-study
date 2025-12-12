@@ -2056,6 +2056,82 @@ Connected to s-03xxxxx.server.transfer.us-east-1.amazonaws.com.
 sftp>
 ```
 
+
+#### ➡️ Get your SFTP details from AWS Transfer Family
+
+##### You need four things:
+
+SFTP Server Endpoint
+
+Example:
+
+```
+s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
+```
+
+Username
+
+Example:
+
+```
+wpadmin
+```
+
+Private Key File (not .pub)
+
+Example:
+
+```
+sftp-user-key
+```
+
+Must be:
+
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+Port 22
+
+
+#### ➡️ Convert your private key to PPK (WinSCP format)
+
+WinSCP cannot use an OpenSSH private key directly.
+You must convert it to a PuTTY/PPK file.
+
+✔ Do this:
+
+Open PuTTYgen (installed with WinSCP).
+
+Click Load
+
+Change file filter to All Files (*.*)
+
+Select your key:
+
+```
+C:\Users\musta\Downloads\sftp-user-key
+```
+
+PuTTYgen will import it.
+
+Click Save private key
+
+Save as:
+
+```
+sftp-user-key.ppk
+```
+
+This PPK file is what WinSCP will use.
+
+
+
+
+
+
 #### ➡️ Export a REAL OpenSSH key from WinSCP / PuTTYgen
 
 Since WinSCP can read your key, we will use it to export a valid OpenSSH key for PowerShell.
