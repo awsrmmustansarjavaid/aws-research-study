@@ -2056,13 +2056,75 @@ Connected to s-03xxxxx.server.transfer.us-east-1.amazonaws.com.
 sftp>
 ```
 
+#### ➡️ Export a REAL OpenSSH key from WinSCP / PuTTYgen
+
+Since WinSCP can read your key, we will use it to export a valid OpenSSH key for PowerShell.
+
+#### ✅ Open your working key in PuTTYgen
+
+- Open PuTTYgen
+
+- Click Load
+
+- Change file type to All Files (*.*)
+
+- Select the key that WinSCP connected with (could be .ppk or your original file)
+
+#### ✅ Export an OpenSSH private key (this is the key PowerShell needs)
+
+##### Inside PuTTYgen:
+
+- **✔ Go to menu: Conversions → Export OpenSSH key**
+
+##### Save file as:
+
+```
+sftp-openssh
+```
+
+##### This file will contain the correct format:
+
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+##### PuTTYgen ensures:
+
+- No BOM
+
+- Correct LF endings
+
+- Valid OpenSSH structure
+
+- No corruption
+
+- No unusual wrapping
+
+#### ✅ Use this exported key with PowerShell SFTP
+
+```
+sftp -i "C:\Users\musta\Downloads\sftp-openssh" wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
+```
+
+This WILL connect successfully.
+
+#### 🎯 Why this fixes it
+
+- WinSCP can read multiple key formats → including PPK
+
+- PowerShell’s built-in OpenSSH client is strict → only reads exact OpenSSH format
+
+- Your current key file = valid for WinSCP but not valid OpenSSH formatting
+
+- Exporting via PuTTYgen converts it to 100% correct OpenSSH structure
 
 
 
 
-scp -i your-ec2-key.pem ec2-user@<EC2-IP>:/home/ec2-user/sftp-user-key .
 
-
+----
 
 ###### If you want password login → I can provide Lambda-based password auth.
 
