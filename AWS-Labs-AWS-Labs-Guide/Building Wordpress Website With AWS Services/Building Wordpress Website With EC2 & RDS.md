@@ -1918,7 +1918,7 @@ AWS-Transfer-SFTP-S3-Access
 
 - **Generate SSH Key Pair on EC2**
 
-#### Run the following command on your EC2 instance:
+#### ➡️ Run the following command on your EC2 instance:
 
 ```
 ssh-keygen -t rsa -b 2048 -f sftp-user-key
@@ -1944,7 +1944,7 @@ Enter same passphrase again:
 ```
 
 
-#### View the Public Key
+#### ➡️ View the Public Key
 
 ```
 cat sftp-user-key.pub
@@ -1956,11 +1956,18 @@ cat sftp-user-key.pub
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7k3.... ec2-user@ip-10-0-0-123
 ```
 
-🔹 This line is exactly what you must copy into the AWS Transfer Family user “SSH public key” field.
+✔  This line is exactly what you must copy into the AWS Transfer Family user “SSH public key” field.
 
-🔹 It must be on one line only.
+✔ It must be on one line only.
 
-#### Add the Key to AWS Transfer Family User
+✔ Copy the entire single line
+
+✔ No extra spaces
+
+✔ No new lines
+
+
+#### ➡️ Add the Key to AWS Transfer Family User
 
 - **Go to Transfer Family → Servers**
 
@@ -1977,6 +1984,83 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7k3.... ec2-user@ip-10-0-0-123
 - **Click Add user**
 
 🎉 If SSH key format is correct, the user will create successfully.
+
+
+#### ⚠️ If You Still Get a Validation Error
+
+##### Check these common issues:
+
+1. Key is split into 2 lines
+
+✔️ Must be one line only.
+
+2. Key has spaces at beginning or end
+
+✔️ Remove extra whitespace.
+
+3. Key is copied with wrong encoding
+
+✔️ Paste using plain-text mode (Shift+Right Click → "Paste" in Windows terminal).
+
+
+
+#### ➡️ Use EC2 private key to Login via SFTP on EC2
+
+```
+sftp -i sftp-user-key sftpuser@<your-transfer-server-endpoint>
+```
+
+Example:
+
+
+```
+sftp -i sftp-user-key wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
+```
+
+#### 🔐 Important Notes
+- **✔ The private key stays on EC2**
+
+###### You must download the private key from EC2 to your local computer if you want to log in from your PC.
+
+#### ➡️ Download using SCP On your local machine:
+
+```
+scp -i your-ec2-key.pem ec2-user@<EC2-IP>:/home/ec2-user/sftp-user-key .
+```
+
+Example:
+
+
+```
+scp -i sftp-user-key.pub ec2-user@34.230.90.7:/home/ec2-user/sftp-user-key .
+```
+
+**✔ Your private key must not have wrong permissions**
+
+#### ➡️ Run on your local machine:
+
+```
+chmod 600 sftp-user-key
+```
+
+#### ➡️ Test SFTP Login On your local machine:
+
+```
+sftp -i sftp-user-key sftpuser@<your-transfer-server-endpoint>
+```
+
+###### If everything is correct, you will see:
+
+```
+Connected to s-03xxxxx.server.transfer.us-east-1.amazonaws.com.
+sftp>
+```
+
+
+
+
+
+scp -i your-ec2-key.pem ec2-user@<EC2-IP>:/home/ec2-user/sftp-user-key .
 
 
 
