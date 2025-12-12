@@ -1,4 +1,4 @@
-## AWS Hands-on Lab Guide 
+## ☁️ AWS Hands-on Lab Guide 
 
 # AWS Wordpress Configuration Lab Guide (EC2 + S3 + WordPress + RDS & SFTP + AWSTransfer Family (SFTP) + Connector) Architecture
 
@@ -7,14 +7,14 @@
 
 
 ----
-## ✅ AWS Architecture Method 1  —  AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
+## ☁️ AWS Architecture Method 1  —  AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
 -----
 
 
 
 ---
 
-## 1. Lab Overview
+# 🖥️ Lab Overview
 
 This hands-on AWS lab guides you through building a production-style WordPress architecture using:
 
@@ -37,13 +37,13 @@ This setup provides:
 
 ---
 
-## 2. AWS Architecture Diagram
+# 🎓 AWS Architecture Diagram
 
 ![WordPress on EC2 + RDS Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20AWS%20Services/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true)
 
 ---
 
-## 3. Architecture Flow
+# ⚖️ Architecture Flow
 
 1. User → EC2 (Nginx + PHP-FPM)  
 2. EC2 → Amazon RDS (MySQL database)  
@@ -53,13 +53,17 @@ This setup provides:
 
 ---
 
-# 4. Step-by-Step WordPress Deployment
+# 📋 Step-by-Step Lab Guide
 
----
 
-# Section 1 — IAM Role and Policies
 
-## Step 1  Create IAM Role for EC2
+# 💻 Section 1 — Preparing the WordPress Prerequisites & Foundational Setup
+
+
+
+# 🟦 Section 1 — IAM Role and Policies
+
+## IAM Role 1- Create IAM Role for CloudWatch
 
 - Open IAM Console
 
@@ -124,11 +128,335 @@ EC2-CloudWatchAgent-Role
 
 - Click Create Role.
 
+***
+
+## IAM Role 2- Create IAM Role for Transfer Family (SFTP)
+
+### 1️⃣ Create IAM Role
+
+- **Go to IAM → Roles → Create Role**
+
+#### Trusted entity:
+
+```
+Transfer
+```
+
+#### Attach policy (create custom):
+
+##### 📌 IAM Policy to allow SFTP access to S3
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::my-wp-media-bucket-123",
+                "arn:aws:s3:::my-wp-media-bucket-123/*"
+            ]
+        }
+    ]
+}
+```
+
+#### Name the role:
+
+```
+AWS-Transfer-SFTP-S3-Access
+```
+
+---
+
+# 🟦 SECTION 2 — Create S3 Bucket for WordPress Files
+
+### 1️⃣ Create S3 Bucket
+
+#### Name example:
+
+```
+my-wp-media-bucket-123
+```
+
+### 2️⃣ Enable Bucket Options
+
+#### Enable:
+
+```
+✔ Versioning
+✔ Block Public Access (KEEP ON)
+✔ Default encryption (SSE-S3 OK)
+```
+
+### 3️⃣ Create Folder Structure (Optional)
+
+```
+/uploads/
+/themes/
+/plugins/
+```
+
+---
+
+---
+
+# 🟦 Section 3 — Download and install the CloudWatch agent package (Amazon Linux 2023)
+
+```
+sudo dnf install -y amazon-cloudwatch-agent
+```
+
+### Create config file
+
+Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+```
+sudo nano /opt/aws/amazon-cloudwatch-agent/bin/config.json
+```
+
+**Paste:** Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics)
+
+
+```
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+
+  "metrics": {
+    "append_dimensions": {
+      "InstanceId": "${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "cpu": {
+        "measurement": [
+          "cpu_usage_idle",
+          "cpu_usage_user",
+          "cpu_usage_system"
+        ],
+        "metrics_collection_interval": 60
+      },
+      "mem": {
+        "measurement": [
+          "mem_used_percent"
+        ],
+        "metrics_collection_interval": 60
+      },
+      "disk": {
+        "measurement": [
+          "used_percent"
+        ],
+        "resources": [
+          "/"
+        ],
+        "metrics_collection_interval": 60
+      }
+    }
+  },
+
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/messages",
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "ec2-system-log"
+          },
+          {
+            "file_path": "/var/log/nginx/access.log",
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "nginx-access"
+          },
+          {
+            "file_path": "/var/log/nginx/error.log",
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "nginx-error"
+          },
+          {
+            "file_path": "/var/log/php-fpm/www-error.log",
+            "log_group_name": "wordpress-lab",
+            "log_stream_name": "php-fpm-error"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 📝 Important Notes
+
+#### ✔️ 1. PHP-FPM Log Path Might Be Different
+
+##### Common paths:
+
+```
+/var/log/php-fpm/error.log
+/var/log/php7.4-fpm.log
+/var/log/php-fpm/www-error.log
+```
+
+
+**Note: Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:**
+
+##### Test it:
+
+```
+php -i | grep error_log
+# or inspect /etc/php-fpm.d/www.conf for 'error_log'
+sudo grep -R "error_log" /etc/php*
+```
+
+#### ✔️ 2. Restart CloudWatch Agent
+
+```
+sudo systemctl restart amazon-cloudwatch-agent
+```
+
+```
+sudo systemctl status amazon-cloudwatch-agent
+```
+
+#### ✔️ 3. Logs will now appear like this:
+
+##### Log Group:
+
+```
+wordpress-lab
+```
+
+##### Log Streams:
+
+```
+ec2-system-log
+nginx-access
+nginx-error
+php-fpm-error
+```
+
+**And metrics will appear automatically under EC2 → Monitoring and CloudWatch → Metrics.**
+
+
+---
+
+# 🟦 Section 4 — Launch RDS MySQL
+
+## Step 1 — RDS Recommended Settings
+
+- **Engine:** MySQL 8.x
+
+- **Instance class:** db.t3.micro
+
+- **Storage:** 20 GB
+
+- **Public Access:** NO (private)
+
+- **Initial DB name:** wordpressdb (or wordpressdb)
+
+- **Master User:** wpadmin
+
+- **Master Password:** wpadmin123
+
+- **RDS Security Group** 
+
+- **Inbound:**
+
+```
+rds-db-sg that allows 3306 from web-server-sg
+```
+
+## Step 2 — Install MySQL Client on EC2
+
+### Install and Configure MariaDB (MySQL)
+
+```
+sudo dnf install mariadb105-server mariadb105 -y
+```
+
+#### Start & enable DB
+
+```
+sudo systemctl start mariadb
+```
+
+```
+sudo systemctl enable mariadb
+```
+
+#### Confirm versions:
+
+```
+mysql --version
+```
+
+#### Secure DB
+
+##### Run secure installation:
+
+```
+sudo mysql_secure_installation
+```
+
+#### Use the following answers:
+
+```
+| Prompt                 | Answer                    |
+| ---------------------- | ------------------------- |
+| Switch to unix_socket  | n                         |
+| Set root password      | y → Enter strong password |
+| Remove anonymous       | y                         |
+| Disallow remote root   | y                         |
+| Remove test DB         | y                         |
+| Reload privilege table | y                         |
+```
+
+
+
+
+### Connect to RDS:
+
+```
+mysql -h <RDS-ENDPOINT> -u wpadmin -p
+```
+
+### Create DB + User:
+
+```
+CREATE DATABASE wordpress;
+```
+```
+CREATE USER 'wordpressuser'@'%' IDENTIFIED BY 'StrongPassword123!';
+```
+```
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpressuser'@'%';
+```
+```
+FLUSH PRIVILEGES;
+```
+```
+exit
+```
+##### Note: Use a strong password and store it securely (Secrets Manager recommended for production).
+
+
+
 
 ---
 
 
-# Section 2 — Configure WordPress
+# 💻 Section 1 — Preparing the WordPress Foundational Deployment Setup
+
+
+# 🟦 Section 1 — Configure AWS EC2 
 
 ## Step 1 Network & Security Group plan:
 
@@ -1051,252 +1379,9 @@ systemctl restart httpd
 
 
 
----
 
-# Section 3 — Download and install the CloudWatch agent package (Amazon Linux 2023)
 
-```
-sudo dnf install -y amazon-cloudwatch-agent
-```
-
-### Create config file
-
-Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-
-```
-sudo nano /opt/aws/amazon-cloudwatch-agent/bin/config.json
-```
-
-**Paste:** Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics)
-
-
-```
-{
-  "agent": {
-    "metrics_collection_interval": 60,
-    "run_as_user": "root"
-  },
-
-  "metrics": {
-    "append_dimensions": {
-      "InstanceId": "${aws:InstanceId}"
-    },
-    "metrics_collected": {
-      "cpu": {
-        "measurement": [
-          "cpu_usage_idle",
-          "cpu_usage_user",
-          "cpu_usage_system"
-        ],
-        "metrics_collection_interval": 60
-      },
-      "mem": {
-        "measurement": [
-          "mem_used_percent"
-        ],
-        "metrics_collection_interval": 60
-      },
-      "disk": {
-        "measurement": [
-          "used_percent"
-        ],
-        "resources": [
-          "/"
-        ],
-        "metrics_collection_interval": 60
-      }
-    }
-  },
-
-  "logs": {
-    "logs_collected": {
-      "files": {
-        "collect_list": [
-          {
-            "file_path": "/var/log/messages",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "ec2-system-log"
-          },
-          {
-            "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "nginx-access"
-          },
-          {
-            "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "nginx-error"
-          },
-          {
-            "file_path": "/var/log/php-fpm/www-error.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "php-fpm-error"
-          }
-        ]
-      }
-    }
-  }
-}
-```
-
-### 📝 Important Notes
-
-#### ✔️ 1. PHP-FPM Log Path Might Be Different
-
-##### Common paths:
-
-```
-/var/log/php-fpm/error.log
-/var/log/php7.4-fpm.log
-/var/log/php-fpm/www-error.log
-```
-
-
-**Note: Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:**
-
-##### Test it:
-
-```
-php -i | grep error_log
-# or inspect /etc/php-fpm.d/www.conf for 'error_log'
-sudo grep -R "error_log" /etc/php*
-```
-
-#### ✔️ 2. Restart CloudWatch Agent
-
-```
-sudo systemctl restart amazon-cloudwatch-agent
-```
-
-```
-sudo systemctl status amazon-cloudwatch-agent
-```
-
-#### ✔️ 3. Logs will now appear like this:
-
-##### Log Group:
-
-```
-wordpress-lab
-```
-
-##### Log Streams:
-
-```
-ec2-system-log
-nginx-access
-nginx-error
-php-fpm-error
-```
-
-**And metrics will appear automatically under EC2 → Monitoring and CloudWatch → Metrics.**
-
-
----
-
-# Section 4 — Launch RDS MySQL
-
-## Step 1 — RDS Recommended Settings
-
-- **Engine:** MySQL 8.x
-
-- **Instance class:** db.t3.micro
-
-- **Storage:** 20 GB
-
-- **Public Access:** NO (private)
-
-- **Initial DB name:** wordpressdb (or wordpressdb)
-
-- **Master User:** wpadmin
-
-- **Master Password:** wpadmin123
-
-- **RDS Security Group** 
-
-- **Inbound:**
-
-```
-rds-db-sg that allows 3306 from web-server-sg
-```
-
-## Step 2 — Install MySQL Client on EC2
-
-### Install and Configure MariaDB (MySQL)
-
-```
-sudo dnf install mariadb105-server mariadb105 -y
-```
-
-#### Start & enable DB
-
-```
-sudo systemctl start mariadb
-```
-
-```
-sudo systemctl enable mariadb
-```
-
-#### Confirm versions:
-
-```
-mysql --version
-```
-
-#### Secure DB
-
-##### Run secure installation:
-
-```
-sudo mysql_secure_installation
-```
-
-#### Use the following answers:
-
-```
-| Prompt                 | Answer                    |
-| ---------------------- | ------------------------- |
-| Switch to unix_socket  | n                         |
-| Set root password      | y → Enter strong password |
-| Remove anonymous       | y                         |
-| Disallow remote root   | y                         |
-| Remove test DB         | y                         |
-| Reload privilege table | y                         |
-```
-
-
-
-
-### Connect to RDS:
-
-```
-mysql -h <RDS-ENDPOINT> -u wpadmin -p
-```
-
-### Create DB + User:
-
-```
-CREATE DATABASE wordpress;
-```
-```
-CREATE USER 'wordpressuser'@'%' IDENTIFIED BY 'StrongPassword123!';
-```
-```
-GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpressuser'@'%';
-```
-```
-FLUSH PRIVILEGES;
-```
-```
-exit
-```
-##### Note: Use a strong password and store it securely (Secrets Manager recommended for production).
-
-
----
-
-# Section 5 —  Configure SFTP on AWS EC2  WordPress
+# 🟦 Section 6 —  Configure SFTP on AWS EC2  WordPress
 
 We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
 
@@ -1754,9 +1839,233 @@ ls /usr/share/nginx/html/wp-content/uploads
 
 **You should see testfile.jpg.**
 
+
+***
+
+## 🟦 SECTION 3 — Configure AWS Transfer Family (SFTP Server)
+
+### 1️⃣ Create AWS Transfer Family
+
+- **Go to AWS Transfer Family → Create Server**
+
+#### Choose:
+
+```
+✔ SFTP (NOT FTP/FTPS)
+✔ Identity Provider: Service managed
+✔ Publicly accessible
+✔ Choose VPC and Subnets
+✔ Logging (Optional but recommended — CloudWatch)
+```
+
+- **Create server.**
+
+##### It will give you:
+
+```
+s-xxxxxxxxxxxx.server.transfer.us-east-1.amazonaws.com
+```
+
 ---
 
-# Section 6 —  Troubleshooting quick commands
+## 🟦 SECTION 4 — Create SFTP User
+
+### 1️⃣ Create Transfer Family User
+
+- **Go to: Transfer Family → Server → USERS → Add User**
+
+#### 1️⃣ Username:
+
+```
+wpfileadmin
+```
+
+#### 2️⃣ Role:
+
+Select role created earlier:
+
+```
+AWS-Transfer-SFTP-S3-Access
+```
+
+#### 3️⃣ Home Directory:
+
+```
+/my-wp-media-bucket-123/uploads
+```
+
+#### 4️⃣ Add SSH Key:
+
+- **✔  Paste user’s public key (.pub)**
+
+- **✔ AWS Transfer DOES NOT support password login.**
+
+- **✔ Only SSH keys.**
+
+###### If you want password login → I can provide Lambda-based password auth.
+
+---
+
+## 🟦 SECTION 5 — Create AWS Transfer Family CONNECTOR
+
+##### This is the MOST IMPORTANT part.
+
+- **Go to: Transfer Family → Connectors → Create connector**
+
+#### 1️⃣ Type:
+
+```
+S3
+```
+
+#### 2️⃣ S3 Bucket:
+
+
+```
+my-wp-media-bucket-123
+```
+
+#### 3️⃣ IAM role:
+
+Create a new role if needed:
+
+```
+AWS-Transfer-S3ConnectorRole
+```
+
+##### Attach policy:
+
+```
+AmazonS3FullAccess
+```
+
+#### 4️⃣ Encryption (optional):
+
+```
+S3 Managed Keys (SSE-S3)
+```
+
+
+#### 5️⃣ Activation:
+
+```
+Enable the connector.
+```
+
+---
+
+## 🟦 SECTION 6 — Link Connector to User
+
+#### 1️⃣ Now: Transfer Family → Servers → Select your server → Users → Edit user → Add connector
+
+#### Choose:
+
+```
+S3 connector (the connector you created)
+```
+
+##### This makes AWS Transfer route:
+
+```
+SFTP uploads → Connector → S3 bucket
+```
+
+---
+
+## 🟦 SECTION 7 — Test SFTP Upload to S3
+
+#### 1️⃣ From any SFTP client:
+
+```
+sftp -i mykey.pem wpfileadmin@s-xxxxxxxxxxxx.server.transfer.us-east-1.amazonaws.com
+```
+
+#### Inside SFTP:
+
+```
+put testfile.jpg
+ls
+```
+
+##### Then check S3 → bucket → files should appear!
+
+---
+
+## 🟦 SECTION 8 — Connect WordPress to S3
+
+**Now we integrate WordPress on EC2 with S3 so WordPress uses S3 as storage.**
+
+#### 1️⃣ Install plugin:
+
+- **✔ “WP Offload Media Lite”**
+
+or
+
+- **✔ “Media Cloud”**
+
+##### Both support S3.
+
+#### 2️⃣ After activation → Configure:
+
+#### Bucket:
+
+```
+my-wp-media-bucket-123
+```
+
+- **✔ Region:** Your region
+
+- **✔ Path:** /uploads/
+
+#### 3️⃣ IAM role:
+
+**✔ “Add IAM Access for WordPress EC2”**
+
+#### IAM role attached to EC2 must include:
+
+```
+AmazonS3FullAccess
+```
+
+#### or minimal:
+
+```
+s3:PutObject
+s3:GetObject
+s3:DeleteObject
+s3:ListBucket
+```
+
+**✔ “Now ANY image uploaded in WordPress → S3.”**
+
+**✔ “ANY SFTP upload → S3.”**
+
+**📌 WordPress automatically reads S3 files.**
+
+---
+
+## 🎉 RESULT: Full Enterprise Workflow
+
+- **✔ SFTP user uploads → S3**
+
+- **✔ WordPress accesses → S3**
+
+- **✔ EC2 does NOT store media**
+
+- **✔ Storage is scalable, secure, durable**
+
+- **✔ No OS to manage for SFTP**
+
+- **✔ Fully serverless + scalable**
+
+
+---
+
+# 🔭 Section 3 — Infrastructure Test & Verification
+
+
+
+# 🟦 Section 1 —  Troubleshooting quick commands
 
 
 ## Troubleshooting 1 — Nginx config test / restart:
@@ -1805,7 +2114,7 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 sudo tail -n 200 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log
 ```
 
-# Section 7 —  Verification Tests
+# 🟦 Section 2 —  Verification Tests
 
 Run these steps and record the outputs/screenshots.
 
@@ -1886,6 +2195,7 @@ ls -ld /home/sftpuser
 - On WordPress admin → Media, the file should be visible (may require correct file permissions and ownership).
 
 - Insert the image into a post and open the public page to ensure Nginx serves it.
+
 
 
 
