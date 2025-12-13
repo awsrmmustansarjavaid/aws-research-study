@@ -664,10 +664,31 @@ Lambda scans files written to EFS and logs metadata to CloudWatch.
 arn:aws:elasticfilesystem:region:account-id:file-system/fs-xxxx
 ```
 
-### 15.2 VPC Configuration for Lambda (VERY IMPORTANT)
+### 15.2 Create Lambda Function
 
+- **Name:** advancedlab-secure-Lambda
 
-- **Subnets:** Choose PRIVATE subnets
+- **Runtime:** Python 3.10 (recommended)
+
+- **Architecture:** x86_64
+
+- **Timeout:** 30–60 seconds
+
+- **Memory:** 512 MB (minimum recommended for EFS)
+
+- **Ephemeral storage:** default (512 MB is fine)
+
+- **Create Lambda inside VPC**
+
+- **Attach EFS access point**
+
+### 15.3 VPC Configuration for Lambda (VERY IMPORTANT)
+
+- **In Lambda → Configuration → VPC →  Edit **
+
+- **VPC:** Choose same VPC as EFS
+
+- **Subnets:** Choose all PRIVATE subnets
 
 ###### Must be in same AZs as EFS mount targets
 
@@ -677,7 +698,9 @@ arn:aws:elasticfilesystem:region:account-id:file-system/fs-xxxx
 
 - **Outbound:** TCP 2049 → EFS Security Group
 
-### 15.3 EFS Configuration (Required for Lambda)
+**Click on Save**
+
+### 15.4 EFS Configuration (Required for Lambda)
 
 ##### EFS must have:
 
@@ -693,7 +716,7 @@ Port: 2049
 Source: Lambda Security Group
 ```
 
-### 15.4 EFS Access Point (BEST PRACTICE)
+### 15.5 EFS Access Point (BEST PRACTICE)
 
 - **Create Access Point**
 
@@ -718,11 +741,6 @@ Permissions: 750
 
 **This avoids permission issues.**
 
-### 15.5 Create Lambda Function
-
-- Name: advancedlab-secure-Lambda
-- Create Lambda inside VPC
-- Attach EFS access point
 
 
 ### 15.6 Attach EFS to Lambda (THIS STEP IS OFTEN MISSED)
