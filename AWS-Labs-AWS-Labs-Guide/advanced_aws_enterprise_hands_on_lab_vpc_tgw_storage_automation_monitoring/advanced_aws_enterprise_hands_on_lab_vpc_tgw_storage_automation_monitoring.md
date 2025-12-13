@@ -112,7 +112,9 @@ Enable auto‑assign public IP **only** on the public subnet.
 ---
 
 ## 8. RDS MySQL (Private)
-- Name: advancedlab-secure-RDS
+- DB instance identifier Name: advancedlab-secure-RDS
+- User: admin
+- Password: admin123
 - Engine: MySQL
 - Instance: db.t3.micro
 - Public access: No
