@@ -382,17 +382,79 @@ ls -l /data
 ---
 
 ## 14. EFS Lab (Shared Storage)
+
 ### 14.1 Create EFS
+- **Go to Amazon EFS → Create File System**
+- Name: AdvancedLabEFS
 - VPC: AdvancedLabVPC
 - Mount target in private subnet
 - SG: Allow NFS 2049 from EC2 SG
 
-### 14.2 Mount EFS on EC2
-```bash
-sudo yum install -y amazon-efs-utils
-sudo mkdir /efsdata
-sudo mount -t efs -o tls fs-xxxx:/ /efsdata
+##### Click Customize (important)
+
+### 14.2 Choose Network Settings:
+
+#### Availability Zones:
+
+- **Select AZs where your private EC2 instance exists**
+
+#### Add mount targets:
+
+- **Subnet: Private Subnet (e.g., 10.10.2.0/24)**
+
+- **Security Group: Create new → EFS-SG**
+
 ```
+Allow inbound NFS (2049) from EC2 SG
+```
+
+##### Click Create File System
+
+#### Configure EFS Security Group
+
+##### EFS-SG (Inbound rules):
+
+- **Type:** NFS
+
+- **Port:** 2049
+
+- **Source:** EC2 instance Security Group (e.g., PrivateEC2-SG)
+
+##### PrivateEC2-SG (Outbound rules):
+
+- **Allow outbound to EFS-SG on port 2049**
+
+✔ This ensures only private EC2 instances can mount the EFS.
+
+
+
+### 14.3 Mount EFS on EC2
+
+#### Install NFS Utilities on Private EC2
+
+##### SSH into the private EC2 instance through your bastion or SSM session manager:
+
+```
+sudo yum install -y amazon-efs-utils
+```
+
+#### Create a Mount Directory for EFS
+
+```
+sudo mkdir /efsdata
+```
+
+#### Mount EFS on EC2
+
+###### You’ll find your EFS mount command in the AWS console under Access Points → EC2 mount instructions.
+
+**Example:**
+
+```
+sudo mount -t efs -o tls fs-12345678:/ /efsdata
+```
+
+**📣 Replace fs-12345678 with your actual file system ID.**
 
 ### 14.3 Persistent Mount
 ```
@@ -495,7 +557,9 @@ You now understand and implemented:
 
 ---
 
-**END OF LAB**
+#### END OF LAB
+
+---
 
 # 🎉 All New Tasks Successfully Integrated Into the Main Lab
 
