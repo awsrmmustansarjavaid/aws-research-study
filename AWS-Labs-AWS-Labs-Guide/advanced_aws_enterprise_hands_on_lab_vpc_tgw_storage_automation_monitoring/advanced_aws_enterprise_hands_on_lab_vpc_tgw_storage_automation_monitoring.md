@@ -1,6 +1,6 @@
 # Advanced AWS Enterprise Hands-On Lab
 
-> **Author:** AWS Cloud Trainer  
+> **Author:** Charlie
 > **Level:** Advanced (Associate → Professional)  
 > **Purpose:** End‑to‑end enterprise AWS hands‑on lab covering networking, storage, automation, monitoring, and Linux administration.
 
