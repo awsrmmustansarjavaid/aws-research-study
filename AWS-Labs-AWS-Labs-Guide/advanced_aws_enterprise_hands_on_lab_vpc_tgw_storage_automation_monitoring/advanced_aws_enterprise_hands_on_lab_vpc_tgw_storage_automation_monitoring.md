@@ -497,3 +497,22 @@ You now understand and implemented:
 
 **END OF LAB**
 
+# 🎉 All New Tasks Successfully Integrated Into the Main Lab
+
+## You now have:
+
+
+
+### EC2 + EBS + User/Group Permission Management
+
+- **✔ Public EC2 with attached EBS**
+
+- **✔ Mounted and persistent file system**
+
+- **✔ New Linux user & group**
+
+- **✔ Group-level permission control**
+
+- **✔ User added to the group**
+
+- **✔ Full integration with the main AWS architecture**
