@@ -299,26 +299,85 @@ lsblk
 
 ## 13. Linux User, Group & Permissions
 ### 13.1 Create Group
-```bash
-groupadd labgroup
+```
+sudo groupadd labgroup
 ```
 
 ### 13.2 Create User
-```bash
-useradd labuser
-passwd labuser
 ```
+sudo useradd labuser
+```
+#### Set password:
+
+```
+sudo passwd labuser
+```
+
+
 
 ### 13.3 Assign Directory Permissions
-```bash
-chgrp labgroup /data
-chmod 2770 /data
+
+###### We will assign ownership of the /data directory to the group.
+
+#### Change Group Ownership of Directory
+
+```
+sudo chgrp labgroup /data
 ```
 
-### 13.4 Add User to Group
-```bash
-usermod -aG labgroup labuser
+#### Give the Group Permissions
+
+##### Give read/write/execute:
+
 ```
+sudo chmod 770 /data
+```
+
+##### OR if you want group to have elevated (root-like) privileges on this directory specifically:
+
+##### Give setgid bit so new files belong to the group:
+
+```
+sudo chmod 2770 /data
+```
+
+
+
+
+### 13.4 Add User to Group
+
+```
+sudo usermod -aG labgroup labuser
+```
+
+#### Verify:
+
+```
+id labuser
+```
+
+###### You should see: labgroup in the groups list.
+
+### 13.5 Test Permissions
+
+#### Switch to the user:
+
+```
+su - labuser
+```
+
+##### Try writing into the directory:
+
+```
+touch /data/testfile.txt
+```
+
+```
+ls -l /data
+```
+
+**🏆 If permissions are correct → success.**
+
 
 ---
 
