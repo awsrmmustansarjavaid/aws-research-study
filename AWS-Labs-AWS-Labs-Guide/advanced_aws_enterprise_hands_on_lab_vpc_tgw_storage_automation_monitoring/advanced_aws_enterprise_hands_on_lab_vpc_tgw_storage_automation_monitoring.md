@@ -196,7 +196,7 @@ INSERT INTO products (name, price, description) VALUES
  ```
  SELECT * FROM products;
  ```
- 
+
 
 ```
 exit
@@ -248,18 +248,52 @@ ip a
 - Attach to Public EC2
 
 ### 12.2 Format and Mount
-```bash
-df -h\lsblk
-sudo mkfs.xfs /dev/xvdf
+
+#### Create File System
+
+```
+sudo mkfs -t xfs /dev/xvdf
+```
+
+#### Create Directory to Mount Volume
+
+```
 sudo mkdir /data
+```
+
+#### Mount the Volume
+
+```
 sudo mount /dev/xvdf /data
 ```
 
 ### 12.3 Persistent Mount
-Add to `/etc/fstab`:
+
+#### Edit /etc/fstab:
+
+```
+sudo nano /etc/fstab
+```
+
+Add this line:
+
 ```
 /dev/xvdf /data xfs defaults,nofail 0 2
 ```
+
+#### Save & exit, then test:
+
+```
+sudo mount -a
+```
+
+
+```
+lsblk
+```
+
+
+
 
 ---
 
