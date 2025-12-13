@@ -50,7 +50,7 @@ No Active Directory or domain services are required.
 
 # 🎓 AWS Architecture Diagram
 
-![Advanced AWS Enterprise Hands-On Lab Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20AWS%20Services/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring.png?raw=true](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring.png?raw=true)
+![Advanced AWS Enterprise Hands-On Lab Diagram](https://raw.githubusercontent.com/awsrmmustansarjavaid/aws-research-study/refs/heads/main/AWS-Labs-AWS-Labs-Guide/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring.png)
 
 ---
 
