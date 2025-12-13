@@ -808,6 +808,25 @@ cat /efs/lambda-test.txt
 
 **✔ If file exists → Lambda ↔ EFS integration is SUCCESSFUL**
 
+
+### 15.9 Lambda & EventBridge Automation 
+
+#### Create Lambda Trigger
+
+- **Go to Lambda trigger → EventBridge**
+
+- **Rule → Create a new rule → advancedlab-secure-Lambda**
+
+- **Rule type →  Schedule expression  → cron(0 17 ? * MON-FRI *)**
+
+- **Add**
+
+- **In Lambda → Configuration → Trigger → advancedlab-secure-Lambda → Edit**
+
+- **Cron expression: set time**
+
+- **Additional settings → Configure target input → JSON → {} → update**
+
 ---
 
 ## 16. CloudWatch Monitoring
