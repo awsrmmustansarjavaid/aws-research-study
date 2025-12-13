@@ -1,7 +1,9 @@
 # Advanced AWS Enterprise Hands-On Lab
 
 > **Author:** Charlie
-> **Level:** Advanced (Associate → Professional)  
+> 
+> **Level:** Advanced (Associate → Professional)
+>  
 > **Purpose:** End‑to‑end enterprise AWS hands‑on lab covering networking, storage, automation, monitoring, and Linux administration.
 
 ---
