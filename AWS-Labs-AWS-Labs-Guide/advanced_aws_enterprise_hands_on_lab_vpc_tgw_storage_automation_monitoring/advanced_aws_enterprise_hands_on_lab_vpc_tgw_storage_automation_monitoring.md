@@ -75,6 +75,7 @@ Enable auto‑assign public IP **only** on the public subnet.
 
 ### 5.2 NAT Gateway
 - Create NAT in public subnet
+- Name: advancedlab-secure-NATGW
 - Allocate Elastic IP
 
 ### 5.3 Route Tables
@@ -103,6 +104,7 @@ Enable auto‑assign public IP **only** on the public subnet.
 - Block all public access
 
 ### 7.2 Create VPC Endpoint
+- Name : advancedlab-secure-GWEP
 - Type: Gateway Endpoint
 - Service: S3
 - Attach to private route table
@@ -110,6 +112,7 @@ Enable auto‑assign public IP **only** on the public subnet.
 ---
 
 ## 8. RDS MySQL (Private)
+- Name: advancedlab-secure-RDS
 - Engine: MySQL
 - Instance: db.t3.micro
 - Public access: No
@@ -120,11 +123,13 @@ Enable auto‑assign public IP **only** on the public subnet.
 
 ## 9. EC2 Instances
 ### 9.1 Public EC2 (Admin)
+- Name: advancedlab-secure-pub-ec
 - Subnet: Public
 - Elastic IP attached
 - Used for administration
 
 ### 9.2 Private EC2 (Application)
+- Name: advancedlab-secure-pvt-ec
 - Subnet: Private
 - Access via Bastion or SSM
 
@@ -224,6 +229,7 @@ fs-xxxx:/ /efsdata efs _netdev,tls 0 0
 Lambda scans files written to EFS and logs metadata to CloudWatch.
 
 ### Steps
+- Name: - Name: advancedlab-secure-Lambda
 - Create Lambda inside VPC
 - Attach EFS access point
 - Assign IAM role with:
