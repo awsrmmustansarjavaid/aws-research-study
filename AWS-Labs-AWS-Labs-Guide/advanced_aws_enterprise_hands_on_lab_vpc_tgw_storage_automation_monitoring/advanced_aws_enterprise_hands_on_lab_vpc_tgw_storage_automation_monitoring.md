@@ -121,6 +121,87 @@ Enable auto‑assign public IP **only** on the public subnet.
 - Subnet group: Private subnet
 - SG: Allow 3306 only from private EC2
 
+### Install and Configure MariaDB (MySQL)
+
+```
+sudo dnf install mariadb105-server mariadb105 -y
+```
+
+#### Confirm versions:
+
+```
+mysql --version
+```
+
+### Connect to RDS:
+
+```
+mysql -h <RDS-ENDPOINT> -u wpadmin -p
+```
+
+### Create DB + User:
+
+```
+CREATE DATABASE wordpress;
+```
+```
+CREATE USER 'wordpressuser'@'%' IDENTIFIED BY 'StrongPassword123!';
+```
+```
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpressuser'@'%';
+```
+```
+FLUSH PRIVILEGES;
+```
+
+```
+USE wordpress;
+```
+
+```
+CREATE TABLE products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255),
+  price DECIMAL(10,2),
+  description TEXT
+);
+```
+
+```
+INSERT INTO products (name, price, description) VALUES
+ ('Laptop', 1200.00, 'Good laptop'),
+ ('Phone', 800.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('PC', 30000, 'Good PC'),
+ ('Samsung', 8000.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Gaming PC', 6000.00, 'Good Gaming PC'),
+ ('IPhone', 8700.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Smart LED', 5400.00, 'A1 LED'),
+ ('LCD', 700.00, 'LCD');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Mouse', 600, 'Branded Mouse'),
+ ('Headpne', 8700, 'Headphone');
+ ```
+
+ ```
+ SHOW TABLES;
+ ```
+
+ ```
+ SELECT * FROM products;
+ ```
+ 
+
+```
+exit
+```
+
 ---
 
 ## 9. EC2 Instances
@@ -168,6 +249,7 @@ ip a
 
 ### 12.2 Format and Mount
 ```bash
+df -h\lsblk
 sudo mkfs.xfs /dev/xvdf
 sudo mkdir /data
 sudo mount /dev/xvdf /data
