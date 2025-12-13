@@ -1,404 +1,130 @@
-## ☁️ AWS Hands-on Lab Guide 
+# Advanced AWS Enterprise Hands-On Lab
 
-# AWS Wordpress Configuration Lab Guide (EC2 + S3 + WordPress + RDS & SFTP + AWSTransfer Family (SFTP) + Connector) Architecture
-
-### Architecture Designer: Charlie
-
-
-
-----
-## ☁️ AWS Architecture Method 1  —  AWS Wordpress Configuration Lab Guide (EC2 + WordPress + RDS & SFTP) Architecture
------
-
-
+> **Author:** Charlie
+> 
+> **Level:** Advanced (Associate → Professional)
+>  
+> **Purpose:** End‑to‑end enterprise AWS hands‑on lab covering networking, storage, automation, monitoring, and Linux administration.
 
 ---
 
-# 🖥️ Lab Overview
+## 1. Lab Scenario (Real‑World Context)
+You are a cloud engineer designing a **secure, scalable, enterprise‑grade AWS architecture** similar to an on‑premises environment.  
+The environment must support:
+- Multi‑VPC connectivity
+- Centralized routing (Transit Gateway)
+- Private storage access
+- Shared and non‑shared storage
+- Linux user and permission management
+- Automation using Lambda
+- Monitoring using CloudWatch
 
-This hands-on AWS lab guides you through building a production-style WordPress architecture using:
-
-- Amazon EC2 (Amazon Linux 2023) running Nginx + PHP-FPM hosting WordPress
-
-- Amazon RDS MySQL (private, only accessible by EC2 SG)
-
-- Secure SFTP-only user (chrooted) for uploading WordPress assets
-
-- CloudWatch Agent on EC2 to send metrics & log files (nginx, php-fpm, system)
-
-- Full verification checks and troubleshooting steps
-
-This setup provides:
-
-- ⚡ High performance  
-- 🔐 Secure DB isolation  
-- 🛠 Easy maintenance  
-- 📈 Scalable architecture  
+No Active Directory or domain services are required.
 
 ---
+
+## 2. Services Used
+- Amazon VPC
+- Transit Gateway (TGW)
+- NAT Gateway
+- VPC Endpoints (S3)
+- EC2 (Public & Private)
+- Elastic IP (EIP)
+- Elastic Network Interface (ENI)
+- EBS
+- EFS
+- S3
+- RDS (MySQL)
+- IAM Roles
+- CloudWatch
+- CloudTrail
+- AWS Lambda
+
+---
+
+## 3. Network Architecture Overview
+- VPC‑1 (Admin / Public access)
+- VPC‑2 (Private application resources)
+- Transit Gateway connects VPC‑1 and VPC‑2
+- Private subnets use NAT Gateway for internet access
+- S3 accessed privately via VPC Endpoint
+
 
 # 🎓 AWS Architecture Diagram
 
-![WordPress on EC2 + RDS Diagram](https://github.com/awsrmmustansarjavaid/aws-research-study/blob/main/AWS-Labs-AWS-Labs-Guide/Building%20Wordpress%20Website%20With%20AWS%20Services/Building%20Wordpress%20Website%20With%20EC2%20&%20RDS.png?raw=true)
+![Advanced AWS Enterprise Hands-On Lab Diagram](https://raw.githubusercontent.com/awsrmmustansarjavaid/aws-research-study/refs/heads/main/AWS-Labs-AWS-Labs-Guide/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring/advanced_aws_enterprise_hands_on_lab_vpc_tgw_storage_automation_monitoring.png)
 
 ---
 
-# ⚖️ Architecture Flow
+## 4. Create VPC and Subnets
+### 4.1 Create VPC
+- Name: `AdvancedLabVPC`
+- CIDR: `10.10.0.0/16`
 
-1. User → EC2 (Nginx + PHP-FPM)  
-2. EC2 → Amazon RDS (MySQL database)  
-3. EC2 security group allows HTTP/HTTPS  
-4. RDS security group allows port **3306 only from EC2-SG**  
-5. SFTP → Wordpress
+### 4.2 Create Subnets
+- Public Subnet: `10.10.1.0/24`
+- Private Subnet: `10.10.2.0/24`
 
----
-
-# 📋 Step-by-Step Lab Guide
-
-
-
-# 💻 Section 1 — Preparing the WordPress Prerequisites & Foundational Setup
-
-
-
-# 🟦 Section 1 — IAM Role and Policies
-
-## IAM Role 1- Create IAM Role for CloudWatch
-
-- Open IAM Console
-
-- AWS Console → IAM → Roles → Create Role
-
-- Choose Trusted Entity (Very Important)
-
-- **Select:**
-
-```
-AWS Service
-```
-
-Then choose:
-```
-EC2
-```
-
-- Click Next.
-
-#### Attach Required Policies
-
-You need two policies to fully monitor EC2 + CloudWatch Agent.
-
-- **Required Policy 1: CloudWatchAgentServerPolicy**
-
-This allows EC2 to send logs + metrics to CloudWatch.
-
-- Search and select:
-
-```
-CloudWatchAgentServerPolicy
-```
-
-- **Required Policy 2: AmazonSSMManagedInstanceCore**
-
-This allows SSM (Systems Manager) to run and manage CloudWatch Agent easily.
-
-- Search and select:
-
-```
-AmazonSSMManagedInstanceCore
-```
-
-- **(Optional but Recommended)**
-
-If you plan to store custom logs into S3:
-
-```
-AmazonS3ReadOnlyAccess
-```
-
-Only add this if you know you need it.
-
-#### Name the Role
-
-Use a clear name:
-
-```
-EC2-CloudWatchAgent-Role
-```
-
-- Click Create Role.
-
-***
-
-## IAM Role 2- Create IAM Role for Transfer Family (SFTP)
-
-### 1️⃣ Create IAM Role
-
-- **Go to IAM → Roles → Create Role**
-
-#### Trusted entity:
-
-```
-Transfer
-```
-
-#### Attach policy (create custom):
-
-##### 📌 IAM Policy to allow SFTP access to S3
-
-```
-{
-  "Version":"2012-10-17",
-  "Statement":[
-    {
-      "Effect":"Allow",
-      "Action":[
-        "s3:ListBucket"
-      ],
-      "Resource":[
-        "arn:aws:s3:::my-transfer-sftp-bucket-12345"
-      ]
-    },
-    {
-      "Effect":"Allow",
-      "Action":[
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject",
-        "s3:GetObjectAcl",
-        "s3:PutObjectAcl"
-      ],
-      "Resource":[
-        "arn:aws:s3:::my-transfer-sftp-bucket-12345/*"
-      ]
-    }
-  ]
-}
-```
-
-#### Name the role:
-
-```
-AWS-Transfer-SFTP-S3-Access
-```
+Enable auto‑assign public IP **only** on the public subnet.
 
 ---
 
-# 🟦 SECTION 2 — Create S3 Bucket for WordPress Files
+## 5. Internet Gateway and NAT Gateway
+### 5.1 Internet Gateway
+- Create IGW and attach to VPC
 
-### 1️⃣ Create S3 Bucket
+### 5.2 NAT Gateway
+- Create NAT in public subnet
+- Name: advancedlab-secure-NATGW
+- Allocate Elastic IP
 
-#### Name example:
-
-```
-my-wp-media-bucket-123
-```
-
-### 2️⃣ Enable Bucket Options
-
-#### Enable:
-
-```
-✔ Versioning
-✔ Block Public Access (KEEP ON)
-✔ Default encryption (SSE-S3 OK)
-```
-
-### 3️⃣ Create Folder Structure (Optional)
-
-```
-/uploads/
-/themes/
-/plugins/
-```
+### 5.3 Route Tables
+- Public RT → `0.0.0.0/0` → IGW
+- Private RT → `0.0.0.0/0` → NAT
 
 ---
 
----
+## 6. Transit Gateway Configuration
+### 6.1 Create Transit Gateway
+- Name: `AdvancedLab-TGW`
+- ASN: 64512
 
-# 🟦 Section 3 — Download and install the CloudWatch agent package (Amazon Linux 2023)
+### 6.2 Attach VPCs
+- Attach VPC‑1 and VPC‑2 to TGW
+- Enable route propagation
 
-```
-sudo dnf install -y amazon-cloudwatch-agent
-```
-
-### Create config file
-
-Create agent config /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-
-```
-sudo nano /opt/aws/amazon-cloudwatch-agent/bin/config.json
-```
-
-**Paste:** Example config (collects nginx logs, php-fpm logs, system logs and CPU/memory/disk metrics)
-
-
-```
-{
-  "agent": {
-    "metrics_collection_interval": 60,
-    "run_as_user": "root"
-  },
-
-  "metrics": {
-    "append_dimensions": {
-      "InstanceId": "${aws:InstanceId}"
-    },
-    "metrics_collected": {
-      "cpu": {
-        "measurement": [
-          "cpu_usage_idle",
-          "cpu_usage_user",
-          "cpu_usage_system"
-        ],
-        "metrics_collection_interval": 60
-      },
-      "mem": {
-        "measurement": [
-          "mem_used_percent"
-        ],
-        "metrics_collection_interval": 60
-      },
-      "disk": {
-        "measurement": [
-          "used_percent"
-        ],
-        "resources": [
-          "/"
-        ],
-        "metrics_collection_interval": 60
-      }
-    }
-  },
-
-  "logs": {
-    "logs_collected": {
-      "files": {
-        "collect_list": [
-          {
-            "file_path": "/var/log/messages",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "ec2-system-log"
-          },
-          {
-            "file_path": "/var/log/nginx/access.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "nginx-access"
-          },
-          {
-            "file_path": "/var/log/nginx/error.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "nginx-error"
-          },
-          {
-            "file_path": "/var/log/php-fpm/www-error.log",
-            "log_group_name": "wordpress-lab",
-            "log_stream_name": "php-fpm-error"
-          }
-        ]
-      }
-    }
-  }
-}
-```
-
-### 📝 Important Notes
-
-#### ✔️ 1. PHP-FPM Log Path Might Be Different
-
-##### Common paths:
-
-```
-/var/log/php-fpm/error.log
-/var/log/php7.4-fpm.log
-/var/log/php-fpm/www-error.log
-```
-
-
-**Note: Adjust php-fpm log path to your distro’s path. If php-fpm uses /var/log/php-fpm/error.log or /var/log/php-fpm/www-error.log, set accordingly. To find php-fpm error log path:**
-
-##### Test it:
-
-```
-php -i | grep error_log
-# or inspect /etc/php-fpm.d/www.conf for 'error_log'
-sudo grep -R "error_log" /etc/php*
-```
-
-#### ✔️ 2. Restart CloudWatch Agent
-
-```
-sudo systemctl restart amazon-cloudwatch-agent
-```
-
-```
-sudo systemctl status amazon-cloudwatch-agent
-```
-
-#### ✔️ 3. Logs will now appear like this:
-
-##### Log Group:
-
-```
-wordpress-lab
-```
-
-##### Log Streams:
-
-```
-ec2-system-log
-nginx-access
-nginx-error
-php-fpm-error
-```
-
-**And metrics will appear automatically under EC2 → Monitoring and CloudWatch → Metrics.**
-
+### 6.3 Update Route Tables
+- Add routes pointing remote VPC CIDRs to TGW
 
 ---
 
-# 🟦 Section 4 — Launch RDS MySQL
+## 7. S3 Bucket with VPC Endpoint
+### 7.1 Create S3 Bucket
+- Name: `advancedlab-secure-bucket`
+- Block all public access
 
-## Step 1 — RDS Recommended Settings
+### 7.2 Create VPC Endpoint
+- Name : advancedlab-secure-GWEP
+- Type: Gateway Endpoint
+- Service: S3
+- Attach to private route table
 
-- **Engine:** MySQL 8.x
+---
 
-- **Instance class:** db.t3.micro
-
-- **Storage:** 20 GB
-
-- **Public Access:** NO (private)
-
-- **Initial DB name:** wordpressdb (or wordpressdb)
-
-- **Master User:** wpadmin
-
-- **Master Password:** wpadmin123
-
-- **RDS Security Group** 
-
-- **Inbound:**
-
-```
-rds-db-sg that allows 3306 from web-server-sg
-```
-
-## Step 2 — Install MySQL Client on EC2
+## 8. RDS MySQL (Private)
+- DB instance identifier Name: advancedlab-secure-RDS
+- User: admin
+- Password: admin123
+- Engine: MySQL
+- Instance: db.t3.micro
+- Public access: No
+- Subnet group: Private subnet
+- SG: Allow 3306 only from private EC2
 
 ### Install and Configure MariaDB (MySQL)
 
 ```
 sudo dnf install mariadb105-server mariadb105 -y
-```
-
-#### Start & enable DB
-
-```
-sudo systemctl start mariadb
-```
-
-```
-sudo systemctl enable mariadb
 ```
 
 #### Confirm versions:
@@ -407,34 +133,10 @@ sudo systemctl enable mariadb
 mysql --version
 ```
 
-#### Secure DB
-
-##### Run secure installation:
-
-```
-sudo mysql_secure_installation
-```
-
-#### Use the following answers:
-
-```
-| Prompt                 | Answer                    |
-| ---------------------- | ------------------------- |
-| Switch to unix_socket  | n                         |
-| Set root password      | y → Enter strong password |
-| Remove anonymous       | y                         |
-| Disallow remote root   | y                         |
-| Remove test DB         | y                         |
-| Reload privilege table | y                         |
-```
-
-
-
-
 ### Connect to RDS:
 
 ```
-mysql -h <RDS-ENDPOINT> -u wpadmin -p
+mysql -h <RDS-ENDPOINT> -u <username> -p
 ```
 
 ### Create DB + User:
@@ -451,1063 +153,892 @@ GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpressuser'@'%';
 ```
 FLUSH PRIVILEGES;
 ```
+
+```
+USE wordpress;
+```
+
+```
+CREATE TABLE products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255),
+  price DECIMAL(10,2),
+  description TEXT
+);
+```
+
+```
+INSERT INTO products (name, price, description) VALUES
+ ('Laptop', 1200.00, 'Good laptop'),
+ ('Phone', 800.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('PC', 30000, 'Good PC'),
+ ('Samsung', 8000.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Gaming PC', 6000.00, 'Good Gaming PC'),
+ ('IPhone', 8700.00, 'Smartphone');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Smart LED', 5400.00, 'A1 LED'),
+ ('LCD', 700.00, 'LCD');
+
+INSERT INTO products (name, price, description) VALUES
+ ('Mouse', 600, 'Branded Mouse'),
+ ('Headpne', 8700, 'Headphone');
+ ```
+
+ ```
+ SHOW TABLES;
+ ```
+
+ ```
+ SELECT * FROM products;
+ ```
+
+
 ```
 exit
 ```
-##### Note: Use a strong password and store it securely (Secrets Manager recommended for production).
+
+---
+
+## 9. EC2 Instances
+### 9.1 Public EC2 (Admin)
+- Name: advancedlab-secure-pub-ec
+- Subnet: Public
+- Elastic IP attached
+- Used for administration
+
+### 9.2 Private EC2 (Application)
+- Name: advancedlab-secure-pvt-ec
+- Subnet: Private
+- Access via Bastion or SSM
+
+---
+
+## 10. Elastic IP (EIP) Lab
+- Allocate EIP
+- Associate with Public EC2
+- Verify SSH using static IP
+
+---
+
+## 11. Elastic Network Interface (ENI) Lab
+### 11.1 Create ENI
+- Subnet: Private
+- SG: PrivateEC2-SG
+
+### 11.2 Attach ENI
+- Attach as secondary interface
+
+### 11.3 Verify
+```bash
+ip a
+```
+
+### 11.4 Detach and Reattach (Failover Concept)
+
+---
+
+## 12. EBS Lab (Block Storage)
+### 12.1 Create & Attach EBS
+- Size: 10 GiB
+- Attach to Public EC2
+
+### 12.2 Format and Mount
+
+#### Create File System
+
+```
+sudo mkfs -t xfs /dev/xvdf
+```
+
+#### Create Directory to Mount Volume
+
+```
+sudo mkdir /data
+```
+
+#### Mount the Volume
+
+```
+sudo mount /dev/xvdf /data
+```
+
+### 12.3 Persistent Mount
+
+#### Edit /etc/fstab:
+
+```
+sudo nano /etc/fstab
+```
+
+Add this line:
+
+```
+/dev/xvdf /data xfs defaults,nofail 0 2
+```
+
+#### Save & exit, then test:
+
+```
+sudo mount -a
+```
+
+
+```
+lsblk
+```
 
 
 
 
 ---
 
-
-# 💻 Section 1 — Preparing the WordPress Foundational Deployment Setup
-
-
-# 🟦 Section 1 — Configure AWS EC2 
-
-## Step 1 Network & Security Group plan:
-
-
-- **EC2-SG (web-server-sg)** — inbound:
-
+## 13. Linux User, Group & Permissions
+### 13.1 Create Group
 ```
-SSH (22) → Your_IP/32 only
-
-HTTP (80) → 0.0.0.0/0 (or restrict to your test IPs)
-
-HTTPS (443) → 0.0.0.0/0 (recommended)
+sudo groupadd labgroup
 ```
-
-- **RDS-SG (rds-db-sg)** — inbound:
 
+### 13.2 Create User
 ```
-MySQL/Aurora (3306) → Source: web-server-sg (allow from web server SG only)
+sudo useradd labuser
 ```
-- Keep outbound egress open (or default 0.0.0.0/0) for EC2 so it can access RDS endpoint / updates.
+#### Set password:
 
-
-### EC2 Config:
-- **AMI:** Amazon Linux 2023  
-- **Instance type:** t2.micro / t3.micro  
-- **Storage:** 20 GB  
-- **Security Group Rules:**  
-  - 22 (SSH) – Your IP  
-  - 80 (HTTP) – 0.0.0.0/0  
-  - 443 (HTTPS) – 0.0.0.0/0  
-
-- **Attach IAM Role:**  
-
 ```
-EC2-CloudWatchAgent-Role
+sudo passwd labuser
 ```
 
 
 
-#### Attach IAM Role to Your EC2 Instance (if you forgot to do so during launch)
+### 13.3 Assign Directory Permissions
 
-- Go to EC2 → Instances → Select your WordPress EC2 → Actions → Security → Modify IAM Role
+###### We will assign ownership of the /data directory to the group.
 
+#### Change Group Ownership of Directory
+
 ```
-EC2-CloudWatchAgent-Role
+sudo chgrp labgroup /data
 ```
-- save
 
-## Step 2 Connect:
+#### Give the Group Permissions
 
+##### Give read/write/execute:
 
 ```
-ssh -i yourkey.pem ec2-user@<EC2-PUBLIC-IP>
+sudo chmod 770 /data
 ```
-
-## Step 3 — Install apache or Nginx, PHP-FPM & Required Packages
 
-### Method 1 — Install apache, PHP-FPM & Required Packages
+##### OR if you want group to have elevated (root-like) privileges on this directory specifically:
 
+##### Give setgid bit so new files belong to the group:
 
-## Step 1 — Update
-
 ```
-sudo dnf update -y
+sudo chmod 2770 /data
 ```
 
-## Step 2 — Install & Start Apache
 
-```
-sudo yum install httpd -y
-```
 
-```
-sudo systemctl start httpd
-```
 
+### 13.4 Add User to Group
+
 ```
-sudo systemctl enable httpd
+sudo usermod -aG labgroup labuser
 ```
 
-## Step 3 — Now test in browser:
+#### Verify:
 
 ```
-http://YOUR_PUBLIC_IP
+id labuser
 ```
 
-**You should see Apache test page ✅**
+###### You should see: labgroup in the groups list.
 
-## Step 4 — Fix Permissions (Very Important for WordPress)
+### 13.5 Test Permissions
 
-```
-sudo chown -R apache:apache /var/www/html
-```
+#### Switch to the user:
 
 ```
-sudo chmod -R 755 /var/www
+su - labuser
 ```
 
-## Step 5 — Install PHP for WordPress
+##### Try writing into the directory:
 
 ```
-sudo dnf install php php-mysqlnd php-fpm php-json php-zip php-gd php-curl php-xml php-mbstring -y
+touch /data/testfile.txt
 ```
 
 ```
-sudo systemctl restart httpd
+ls -l /data
 ```
-###### ✔ Fully compatible modules
 
-###### ✔ Required for WordPress to work properly
+**🏆 If permissions are correct → success.**
 
-#### Confirm Apache + PHP Works
 
-```
-curl -I http://localhost
-```
+---
 
-##### Expected:
+## 14. EFS Lab (Shared Storage)
 
-```
-HTTP/1.1 200 OK
-Server: Apache
-```
+### 14.1 Create EFS
+- **Go to Amazon EFS → Create File System**
+- Name: AdvancedLabEFS
+- VPC: AdvancedLabVPC
+- Mount target in private subnet
+- SG: Allow NFS 2049 from EC2 SG
 
-#### Confirm Security Group
+##### Click Customize (important)
 
-**Make sure your EC2 Security Group has:**
+### 14.2 Choose Network Settings:
 
-```
-✅ HTTP – Port 80 – 0.0.0.0/0
-✅ HTTPS – Port 443 – 0.0.0.0/0 (optional)
-```
+#### Availability Zones:
 
-## Step 6 —  WordPress Directory
+- **Select AZs where your private EC2 instance exists**
 
-```
-cd /tmp
-```
+#### Add mount targets:
 
-```
-wget https://wordpress.org/latest.tar.gz
-```
+- **Subnet: Private Subnet (e.g., 10.10.2.0/24)**
 
-```
-tar -xzf latest.tar.gz
-```
+- **Security Group: Create new → EFS-SG**
 
 ```
-sudo cp -R wordpress/* /var/www/html/
+Allow inbound NFS (2049) from EC2 SG
 ```
 
-## Step 7 — Set permissions
+##### Click Create File System
 
-```
-sudo chown -R apache:apache /var/www/html
-```
+#### Configure EFS Security Group
 
-```
-sudo find /var/www/html -type d -exec chmod 755 {} \;
-```
+##### EFS-SG (Inbound rules):
 
-```
-sudo find /var/www/html -type f -exec chmod 644 {} \;
-```
+- **Type:** NFS
 
-```
-sudo systemctl restart httpd
-```
+- **Port:** 2049
 
-#### Now Open WordPress
+- **Source:** EC2 instance Security Group (e.g., PrivateEC2-SG)
 
-Go to browser:
+##### PrivateEC2-SG (Outbound rules):
 
-```
-http://YOUR_PUBLIC_IP
-```
+- **Allow outbound to EFS-SG on port 2049**
 
-**You should see:**
+✔ This ensures only private EC2 instances can mount the EFS.
 
-##### ✅ WordPress setup screen
 
-## Step 8 — Check Your Web Directory
 
-```
-ls -lah /var/www/html
-```
+### 14.3 Mount EFS on EC2
 
-## Step 9 — Configure wp-config.php
+#### Install NFS Utilities on Private EC2
 
-### Create config:
+##### SSH into the private EC2 instance through your bastion or SSM session manager:
 
 ```
-cd /var/www/html
+sudo yum install -y amazon-efs-utils
 ```
+
+#### Create a Mount Directory for EFS
 
 ```
-sudo cp wp-config-sample.php wp-config.php
+sudo mkdir /<filename>
 ```
 
-### Edit:
+**Example:**
 
 ```
-sudo nano wp-config.php
+sudo mkdir /efsdata
 ```
-### Update database connection:
 
+##### Verify:
+
 ```
-define( 'DB_NAME', 'wordpress' );
-define( 'DB_USER', 'wordpressuser' );
-define( 'DB_PASSWORD', 'StrongPassword123!' );
-define( 'DB_HOST', '<RDS-ENDPOINT>' );
+ls -ld /<filename>
 ```
 
-##### Example RDS endpoint:
+**Example:**
 
 ```
-mydb.abcdefghijkl.us-east-1.rds.amazonaws.com
+ls -ld /efsdata
 ```
-
-
 
-### Add AUTH keys:
 
-Add auth keys (generate unique salts):
- 
 
-#### Generate keys:
+#### Mount EFS on EC2
 
-- Open  
+- **Go to : EFS → Your File System → Attach**
 
-https://api.wordpress.org/secret-key/1.1/salt/
+###### You’ll find your EFS mount command in the AWS console under Access Points → EC2 mount instructions.
 
-in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
+##### Copy the command like this:
 
-```
-define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
-define('SECURE_AUTH_KEY',  ':H$M&FvbE6t:EwH5ik/D!@]@%Dv3!-Q^hNH3*O+-$L6c*|');
-define('LOGGED_IN_KEY',    'g9?;b_A BNW[; $9N^E2^jt$LkF 8_^baTmjhp<eE5GUd');
-define('NONCE_KEY',        'G;Wf@|;jzQh>R812&-x^cPoq`tOOu>q)#JVa Y%No%.JpZ[');
-define('AUTH_SALT',        'up^dE)4&x/?]1[thjghhjjhz6Vhiohr(dVMh+d5=R<.l_#l');
-define('SECURE_AUTH_SALT', '@%ka=9?}BQ[m#29D+@jkgjkhjkhjkhkjhkjdTZ`MT{|fypE~');
-define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
-define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
-```
-
-- Paste into wp-config.php
-
-- Save and exit.
-
-#### Set proper ownership:
+**Example:**
 
-```
-sudo chown apache:apache /var/www/html/wp-config.php
-```
+##### Mount EFS using DNS
 
-```
-sudo chmod 640 /var/www/html/wp-config.php
-```
 
-#### restart apache
 
 ```
-sudo systemctl restart httpd php-fpm
+sudo mount -t efs -o tls fs-12345678:/ /efsdata
 ```
+or 
 
-#### Confirm Apache + PHP Works
+##### Mount EFS using IP
 
 ```
-curl -I http://localhost
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 10.0.3.127:/ efsdata
 ```
 
-##### Expected:
+##### If this works, test:
 
 ```
-HTTP/1.1 200 OK
-Server: Apache
+df -h | grep efsdata
 ```
 
+**🎉 EFS is mounted**
 
+**✅ This uses:**
 
-***
+- **✔ DNS**
 
+- **✔ TLS encryption**
 
-### Method 2 — Install Nginx, PHP-FPM & Required Packages
+- **✔ AZ-aware mount targets**
 
-### Step 1 — Installation Web Required Packages:
+#### Verify Mount
 
-#### Update
-
 ```
-sudo dnf update -y
+df -h
 ```
 
-#### Install Nginx
+##### You should see:
 
 ```
-sudo dnf install -y nginx
+fs-xxxxxxxx:/  →  /efs
 ```
 
-#### Start and enable service
+#### Test write:
 
 ```
-sudo systemctl start nginx
+sudo touch /efsdata/testfile.txt
 ```
 
-```
-sudo systemctl enable --now nginx
-```
+#### Verify 
 
 ```
-sudo systemctl status nginx
+ls -l /efsdata
 ```
+
 
-**Visit your server public IP → You should see NGINX Welcome Page**
+#### 🔒 Why Private EC2 Can Mount EFS (No Internet Needed)
 
-### Install PHP + Extensions
+##### EFS is VPC-internal:
 
 ```
-sudo dnf install php php-fpm php-mysqlnd php-json php-opcache php-xml php-gd php-curl php-mbstring php-intl php-zip php-cli -y
+Private EC2 ───► EFS Mount Target (ENI)
 ```
 
-### Start PHP-FPM
+- **✔ No NAT**
+- **✔ No IGW**
+- **✔ No Internet**
+- **✔ Uses private IP only**
 
-```
-sudo systemctl start php-fpm
-```
+###### So your design is 100% correct.
 
-```
-sudo systemctl enable php-fpm
-```
 
-```
-sudo systemctl status php-fpm
-```
 
-### Prepare web root & permissions
 
-We will serve WordPress from /usr/share/nginx/html.
+**📣 Replace fs-12345678 with your actual file system ID.**
 
-```
-sudo chown -R nginx:nginx /var/lib/php/
-```
+### 14.3 Make EFS Persistent (Automatic Mounting)
 
-```
-sudo usermod -a -G nginx ec2-user
-```
+#### Edit the fstab file:
 
 ```
-sudo chown -R ec2-user:nginx /var/www
+sudo nano /etc/fstab
 ```
 
-##### Note: The nginx user runs the webserver. We keep the owner nginx:nginx and ensure uploads are writable by nginx or specific sftp user (see SFTP config below).
+#### Edit the fstab file:
 
+Add this line:
 
-#### Confirm versions:
-
 ```
-nginx -v
+fs-12345678:/ /efsdata efs _netdev,tls 0 0
 ```
 
-```
-php -v
-```
+Save & exit.
 
-#### Confirm Apache + PHP Works
+Test it:
 
 ```
-curl -I http://localhost
+sudo mount -a
 ```
 
-##### Expected:
+### 14.4 Test EFS Shared Storage
 
-```
-HTTP/1.1 200 OK
-Server: Apache
-```
-#### Remove default config:
+#### On EC2 instance:
 
 ```
-sudo rm /etc/nginx/nginx.conf
+sudo touch /efsdata/app-file.txt
 ```
-
-#### Create new NGINX config:
 
 ```
-sudo nano /etc/nginx/nginx.conf
+ls -l /efsdata
 ```
 
-##### Paste exact correct configuration:
 
-```
-user nginx;
-worker_processes auto;
+**🕛 If you mount EFS on multiple EC2 instances later, all will see the same file.**
 
-events {
-    worker_connections 1024;
-}
+---
 
-http {
-    include       mime.types;
-    default_type  application/octet-stream;
+## 15. Lambda + EFS Automation (Scenario)
 
-    sendfile        on;
-    keepalive_timeout 65;
+### Scenario
+Lambda scans files written to EFS and logs metadata to CloudWatch.
 
-    server {
-        listen 80;
-        server_name _;
+### 15.1 Create IAM Role 
+- **Name:** AWSLambdaVPCAccessExecutionRole
 
-        root /var/www/wordpress;
-        index index.php index.html index.htm;
+- **Service:** Lambda
 
-        location / {
-            try_files $uri $uri/ /index.php?$args;
-        }
+##### Trust relationship (must be EXACT)
 
-        location ~ \.php$ {
-            include fastcgi.conf;
-            fastcgi_pass unix:/run/php-fpm/www.sock;
-        }
-
-        location ~ /\.ht {
-            deny all;
-        }
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
     }
+  ]
 }
 ```
 
-#### Test config:
+#### Attach IAM Policies with IAM role 
+
+##### Mandatory Managed Policies:
 
 ```
-sudo nginx -t
+✔ AWSLambdaVPCAccessExecutionRole
+✔ AWSLambdaBasicExecutionRole
+✔ Custom Inline Policy
 ```
 
-#### Reload:
+##### Custom Inline Policy (EFS Access – REQUIRED)
+
+**Managed policies do NOT cover EFS access. You must add a custom inline policy.**
 
 ```
-sudo systemctl restart nginx
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEFSMount",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:ClientMount",
+        "elasticfilesystem:ClientWrite",
+        "elasticfilesystem:ClientRootAccess"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
 ```
 
+**👉 This allows Lambda to:**
 
+- **✔ Mount EFS**
 
-### Step 2 — Download WordPress:
+- **✔ Write to EFS**
 
-```
-cd /tmp
-```
+- **✔ Use EFS access points**
 
-```
-curl -O https://wordpress.org/latest.tar.gz
-```
+##### 💡 In production, you should restrict Resource to:
 
 ```
-tar -xzf latest.tar.gz
+arn:aws:elasticfilesystem:region:account-id:file-system/fs-xxxx
 ```
 
-## Step 3 — Move files to Nginx root:
+### 15.2 Create Lambda Function
 
-#### Move to web directory
+- **Name:** advancedlab-secure-Lambda
 
-```
-sudo mv wordpress /var/www/
-```
+- **Runtime:** Python 3.10 (recommended)
 
-#### Set permissions
+- **Architecture:** x86_64
 
-```
-sudo chown -R nginx:nginx /var/www/wordpress
-```
+- **Timeout:** 30–60 seconds
 
-```
-sudo chmod -R 755 /var/www/wordpress
-```
+- **Memory:** 512 MB (minimum recommended for EFS)
 
-## Step 4 — Configure wp-config.php
+- **Ephemeral storage:** default (512 MB is fine)
 
-### Create config:
+- **Create Lambda inside VPC**
 
-```
-cd /var/www/wordpress
-```
+- **Attach EFS access point**
 
-```
-sudo cp wp-config-sample.php wp-config.php
-```
+### 15.3 VPC Configuration for Lambda (VERY IMPORTANT)
 
-### Edit:
+- **In Lambda → Configuration → VPC →  Edit **
 
-```
-sudo nano wp-config.php
-```
-### Update database connection:
+- **VPC:** Choose same VPC as EFS
 
-```
-define( 'DB_NAME', 'wordpress' );
-define( 'DB_USER', 'wordpressuser' );
-define( 'DB_PASSWORD', 'StrongPassword123!' );
-define('DB_HOST', 'localhost');
-define('DB_CHARSET', 'utf8');
-```
+- **Subnets:** Choose all PRIVATE subnets
 
-### Add AUTH keys:
+###### Must be in same AZs as EFS mount targets
 
-Add auth keys (generate unique salts):
- 
+#### Security Group (Lambda SG): 
 
-#### Generate keys:
+- **Inbound:** NONE
 
-- Open  
+- **Outbound:** TCP 2049 → EFS Security Group
 
-https://api.wordpress.org/secret-key/1.1/salt/
+**Click on Save**
 
-in your browser, copy and paste the output into wp-config.php replacing the placeholder keys.
+### 15.4 EFS Configuration (Required for Lambda)
+
+##### EFS must have:
+
+- **Mount target in each AZ used by Lambda**
+
+- **Security group allowing NFS**
+
+- **EFS Security Group – Inbound :**
 
 ```
-define('AUTH_KEY',         '+7CA?k*Ju&8eCfg=/aFKo0tO5Tn73Cg 9|Ed73k|Gw(3^');
-define('SECURE_AUTH_KEY',  ':H$M&FvbE6t:EwH5ik/D!@]@%Dv3!-Q^hNH3*O+-$L6c*|');
-define('LOGGED_IN_KEY',    'g9?;b_A BNW[; $9N^E2^jt$LkF 8_^baTmjhp<eE5GUd');
-define('NONCE_KEY',        'G;Wf@|;jzQh>R812&-x^cPoq`tOOu>q)#JVa Y%No%.JpZ[');
-define('AUTH_SALT',        'up^dE)4&x/?]1[thjghhjjhz6Vhiohr(dVMh+d5=R<.l_#l');
-define('SECURE_AUTH_SALT', '@%ka=9?}BQ[m#29D+@jkgjkhjkhjkhkjhkjdTZ`MT{|fypE~');
-define('LOGGED_IN_SALT',   'o!UX5|LW4eijhjkbhkjhkjkjbnjjb/1JSPS?e`YW*nrWb|FG ');
-define('NONCE_SALT',       '+t}kH4DA`jhbjkbjkbjkbjkbjkbt8(iWX(]e?&tV;k:>|)IoE');
+Type: NFS
+Port: 2049
+Source: Lambda Security Group
 ```
 
-- Paste into wp-config.php
+### 15.5 EFS Access Point (BEST PRACTICE)
 
-- Save and exit.
+- **Create Access Point**
 
-- Set proper ownership:
+- **Path:** /lambda
 
-```
-sudo chown nginx:nginx wp-config.php
-```
+- **POSIX user:**
 
 ```
-sudo chmod 640 wp-config.php
-```
+UID: 1000
 
-#### Restart All Services
-
-```
-sudo systemctl restart nginx
-```
+GID: 1000
 
 ```
-sudo systemctl restart php-fpm
-```
+
+- **Root directory permissions:**
 
 ```
-sudo systemctl restart mariadb
+Owner UID: 1000
+Owner GID: 1000
+Permissions: 750
 ```
 
-### Test & Restart:
+**This avoids permission issues.**
+
+
+
+### 15.6 Attach EFS to Lambda (THIS STEP IS OFTEN MISSED)
+
+- **In Lambda → Configuration → File system**
+
+- **File system:** AdvancedLabEFS
+
+- **Access point:** fsap-xxxx
+
+- **Local mount path:**
 
 ```
-sudo nginx -t
+/mnt/efs
 ```
 
+**✔ Lambda automatically mounts EFS here.**
+
+### 15.7 Lambda Code Example (Validation Test)
+
+**✔ Use this to prove everything works.**
+
+#### Python code
+
 ```
-sudo systemctl restart nginx
+import os
+
+def lambda_handler(event, context):
+    path = "/mnt/efs/lambda-test.txt"
+
+    with open(path, "a") as f:
+        f.write("Lambda wrote to EFS successfully\n")
+
+    files = os.listdir("/mnt/efs")
+
+    return {
+        "statusCode": 200,
+        "message": "EFS write successful",
+        "files": files
+    }
 ```
 
-## Step 6 — Start WordPress Installer
+### 15.8 Test & Validate (DO NOT SKIP)
 
-#### Confirm Apache + PHP Works
+#### Invoke Lambda
+
+- **Test event → empty JSON {}**
+
+
+- **Check CloudWatch Logs**
+
+##### You should see:
+
+**✔ No permission errors**
+
+**✔ No mount errors**
+
+#### Verify from EC2
+
+##### On EC2 (mounted EFS):
 
 ```
-curl -I http://localhost
+cat /efs/lambda-test.txt
+```
+
+**✔ If file exists → Lambda ↔ EFS integration is SUCCESSFUL**
+
+
+### 15.9 Lambda & EventBridge Automation 
+
+#### Create Lambda Trigger
+
+- **Go to Lambda trigger → EventBridge**
+
+- **Rule → Create a new rule → advancedlab-secure-Lambda**
+
+- **Rule type →  Schedule expression  → cron(0 17 ? * MON-FRI *)**
+
+- **Add**
+
+- **In Lambda → Configuration → Trigger → advancedlab-secure-Lambda → Edit**
+
+- **Cron expression: set time**
+
+- **Additional settings → Configure target input → JSON → {} → update**
+
+---
+
+## 16. CloudWatch Monitoring
+### Resources Monitored
+- EC2 (CPU, Disk)
+- RDS
+- NAT Gateway
+- Lambda
+- S3
+
+### Alarms
+- CPU > 70%
+- RDS storage < 20%
+
+---
+
+## 17. Transit Gateway Metrics Lab
+### 17.1 Enable TGW Flow Logs
+- Destination: CloudWatch Logs
+
+### 17.2 View Metrics
+- BytesIn
+- BytesOut
+- PacketsDropCount
+
+### 17.3 Create Alarm
+- BytesIn > 10 MB
+
+---
+
+## 18. Cross‑VPC SMB File Sharing (Important Concept)
+### Key Rule
+❌ EBS cannot be shared directly
+
+### Working Method
+```
+EBS → EC2 → SMB → TGW → Another VPC EC2
+```
+
+### SMB Setup (Linux)
+```bash
+yum install -y samba
+systemctl enable smb --now
+```
+
+`smb.conf`:
+```
+[ebsshare]
+path = /data
+read only = no
+```
+
+---
+
+## 19. Security Best Practices
+- Least‑privilege IAM roles
+- SG‑to‑SG rules
+- NACL hardening
+- CloudTrail enabled
+- S3 access only via VPC Endpoint
+
+---
+
+## 20. Final Outcome
+You now understand and implemented:
+- Enterprise AWS networking
+- TGW routing & monitoring
+- EBS vs EFS
+- Linux permissions
+- ENI & EIP
+- Lambda automation
+- Cross‑VPC file access (without AD)
+
+---
+
+## 21. Recommended Next Steps
+- Convert to Terraform
+- Add Auto Scaling
+- Replace SMB with EFS or FSx
+- Add AWS Backup
+
+---
+
+#### END OF LAB
+
+---
+
+# 🛠️ Troubleshooting 
+
+## EFS
+
+### 🔵 How to Verify amazon-efs-utils Is Installed (Before Mounting)
+
+####  1. Check if the Package Is Installed (RPM level)
+
+```
+rpm -qa | grep amazon-efs-utils
+```
+
+##### Expected output (example):
+
+```
+amazon-efs-utils-1.39-1.amzn2023.noarch
+```
+
+✔ This confirms the package is installed.
+
+
+####  2. Check the EFS Mount Helper Exists (MOST IMPORTANT)
+
+```
+which mount.efs
+```
+##### Expected output:
+
+```
+/usr/bin/mount.efs
+```
+
+✔ This confirms the EFS mount helper is available.
+
+If this command returns nothing, the install did not succeed.
+
+
+
+####  3. Check Version of amazon-efs-utils
+
+```
+mount.efs --version
+```
+
+or:
+
+```
+amazon-efs-utils --version
+```
+
+✔ Confirms the tool is working.
+
+
+####  4. Verify Required NFS Utilities Are Present
+
+EFS uses NFS under the hood.
+
+```
+which mount.nfs4
 ```
 
 ##### Expected:
 
 ```
-HTTP/1.1 200 OK
-Server: Apache
-```
-### Open browser:
-
-```
-http://<EC2-PUBLIC-IP>
+/usr/sbin/mount.nfs4
 ```
 
-### Complete setup:
+✔ Required for EFS mounting.
 
-- **Site Title**
+####  5. Confirm Package Files Are Installed
 
-- **Admin user**
-
-- **Admin password**
-
-- **Email**
-
-## 🎉 WordPress is now running on EC2 + RDS!
-
-***
-
-### Method 3 — EC2 User Data Script (Amazon Linux 2023)
-
-[Wordpress EC2 User Data Script](./Wordpress_Ec2_Userdata.md)
-
-
----
-
-
-
-# 🔭 Section 4 — Configure SFTP On AWS
-
-## 🟦 Section 1 — Configure SFTP on AWS EC2
-
-We will create a chrooted SFTP user sftpuser whose jail is /home/sftpuser. To allow WordPress uploads, bind-mount ONLY the wp-content/uploads directory into the chroot. This is safer than mounting full webroot.
-
-[Configure SFTP on AWS EC2 Script](./Configure_SFTP_AWS_EC2.md)
-
-
-## 🟦 SECTION 2 — Configure SFTP ( AWS Transfer Family)
-
-### Step 1 — Configure AWS Transfer Family (SFTP Server)
-
-### 1️⃣ Create AWS Transfer Family
-
-- **Go to AWS Transfer Family → Create Server**
-
-#### Choose:
+(Optional but useful)
 
 ```
-✔ SFTP (NOT FTP/FTPS)
-✔ Identity Provider: Service managed
-✔ Publicly accessible
-✔ Choose VPC and Subnets
-✔ Logging (Optional but recommended — CloudWatch)
+rpm -ql amazon-efs-utils
 ```
 
-- **Create server.**
-
-##### It will give you:
+##### You should see files like:
 
 ```
-s-xxxxxxxxxxxx.server.transfer.us-east-1.amazonaws.com
+/usr/bin/mount.efs
+/etc/amazon/efs/efs-utils.conf
 ```
 
----
+####  6. Check TLS Support (Used by -o tls)
 
-### Step 2 — Create SFTP User
-
-### 1️⃣ Create Transfer Family User
-
-- **Go to: Transfer Family → Server → USERS → Add User**
-
-#### 1️⃣ Username:
+EFS with TLS uses stunnel.
 
 ```
-wpfileadmin
+which stunnel
 ```
 
-#### 2️⃣ Role:
-
-Select role created earlier:
+or:
 
 ```
-AWS-Transfer-SFTP-S3-Access
+rpm -qa | grep stunnel
 ```
 
-#### 3️⃣ Home Directory:
+✔ If installed, TLS mounting will work.
+
+
+####  🧪 Quick Pre-Mount Readiness Test
+
+##### Before mounting, run these commands in order:
 
 ```
-/my-wp-media-bucket-123/uploads
+sudo mkdir -p /efs
+which mount.efs
+mount.efs --version
 ```
 
-#### 4️⃣ Add SSH Key:
+✔ If all return valid outputs → you are ready to mount.
 
-- **✔  Paste user’s public key (.pub)**
 
-- **✔ AWS Transfer DOES NOT support password login.**
+####  🚨 If Something Is Missing
 
-- **✔ Only SSH keys.**
-
-#### 5️⃣ Generate a Valid SSH Key Pair on EC2 for AWS Transfer Family
-
-- **Connect to Your EC2 Instance**
-
-- **Generate SSH Key Pair on EC2**
-
-#### ➡️ Run the following command on your EC2 instance:
+##### Reinstall safely:
 
 ```
-ssh-keygen -t rsa -b 2048 -f sftp-user-key
-```
-
-###### It will ask:
-
-```
-Enter passphrase (empty for no passphrase):
-Enter same passphrase again:
-```
-
-**✔️ You can press Enter twice for no passphrase (easier for SFTP automation).**
-
-
-#### This generates two files in your EC2 home directory:
-
-```
-| File                | Purpose                                            |
-| ------------------- | -------------------------------------------------- |
-| `sftp-user-key`     | **Private key** (Keep safe)                        |
-| `sftp-user-key.pub` | **Public key** (Use in AWS Transfer Family user)** |
+sudo yum remove -y amazon-efs-utils
+sudo yum clean all
+sudo yum install -y amazon-efs-utils
 ```
 
 
-#### ➡️ View the Public Key
-
-```
-cat sftp-user-key.pub
-```
-
-##### Output looks like:
-
-```
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7k3.... ec2-user@ip-10-0-0-123
-```
-
-✔  This line is exactly what you must copy into the AWS Transfer Family user “SSH public key” field.
-
-✔ It must be on one line only.
-
-✔ Copy the entire single line
-
-✔ No extra spaces
-
-✔ No new lines
-
-
-#### ➡️ Add the Key to AWS Transfer Family User
-
-- **Go to Transfer Family → Servers**
-
-- **Open your server → Users → Add user**
-
-- **Username:**  wpadmin
-
-- **Role:**     AWS-Transfer-SFTP-S3-Access
-
-- **Home directory:**   /your-s3-bucket-name
-
-- **Paste the public key from last step** 
-
-- **Click Add user**
-
-🎉 If SSH key format is correct, the user will create successfully.
-
-
-#### ⚠️ If You Still Get a Validation Error
-
-##### Check these common issues:
-
-1. Key is split into 2 lines
-
-✔️ Must be one line only.
-
-2. Key has spaces at beginning or end
-
-✔️ Remove extra whitespace.
-
-3. Key is copied with wrong encoding
-
-✔️ Paste using plain-text mode (Shift+Right Click → "Paste" in Windows terminal).
-
-
-
-#### ➡️ Use EC2 private key to Login via SFTP on EC2
-
-```
-sftp -i sftp-user-key sftpuser@<your-transfer-server-endpoint>
-```
-
-Example:
-
-
-```
-sftp -i sftp-user-key wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
-```
-
-#### 🔐 Important Notes
-- **✔ The private key stays on EC2**
-
-###### You must download the private key from EC2 to your local computer if you want to log in from your PC.
-
-#### ➡️ Download using SCP On your local machine:
-
-```
-scp -i your-ec2-key.pem ec2-user@<EC2-IP>:/home/ec2-user/sftp-user-key .
-```
-
-Example:
-
-
-```
-scp -i sftp-user-key.pub ec2-user@34.230.90.7:/home/ec2-user/sftp-user-key .
-```
-
-**✔ Your private key must not have wrong permissions**
-
-#### ➡️ Run on your local machine:
-
-```
-chmod 600 sftp-user-key
-```
-
-#### ➡️ Test SFTP Login On your local machine:
-
-```
-sftp -i sftp-user-key sftpuser@<your-transfer-server-endpoint>
-```
-
-###### If everything is correct, you will see:
-
-```
-Connected to s-03xxxxx.server.transfer.us-east-1.amazonaws.com.
-sftp>
-```
-
-##### Run this EXACT command on one line If any kind error:
-
-```
-sftp -i "C:\Users\musta\Downloads\sftp-user-key" wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
-```
-
-- **✔ No trailing slash**
-
-- **✔ No new line**
-
-- **✔ Key path in quotes**
-
-- **✔ Everything in one line**
-
-#### 🟢 If the key matches AWS → This will connect instantly
-
-##### If it doesn’t connect, then:
-
-- The private key does not match the public key uploaded to AWS Transfer Family
-
-- Not an encoding issue anymore (because your key prints correctly)
-
-
-
-#### ➡️ Get your SFTP details from AWS Transfer Family
-
-##### You need four things:
-
-- **SFTP Server Endpoint:**
-
-Example:
-
-```
-s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
-```
-
-- **Username:** 
-
-Example:
-
-```
-wpadmin
-```
-
-- **Private Key File (not .pub):**
-
-Example:
-
-```
-sftp-user-key
-```
-
-Must be:
-
-```
------BEGIN OPENSSH PRIVATE KEY-----
-...
------END OPENSSH PRIVATE KEY-----
-```
-
-- **Port:** 22
-
-
-#### ➡️ Convert your private key to PPK (WinSCP format)
-
-WinSCP cannot use an OpenSSH private key directly.
-You must convert it to a PuTTY/PPK file.
-
-#### ✔ Do this:
-
-- **Open PuTTYgen (installed with WinSCP).**
-
-- **Click Load**
-
-- **Change file filter to All Files (*.*)**
-
-- **Select your key:**
-
-```
-C:\Users\musta\Downloads\sftp-user-key
-```
-
-- **PuTTYgen will import it.**
-
-- **Click Save private key**
-
-- **Save as:**
-
-```
-sftp-user-key.ppk
-```
-
-This PPK file is what WinSCP will use.
-
-
-#### ➡️ Configure WinSCP
-
-- **Open WinSCP → New Site**
-
-- **File protocol:** SFTP
-
-- **Host name:**  s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
-
-- **Port:** 22
-
-- **Username:**
-
-```
-wpadmin
-```
-
-- **Password:**
-(leave empty)
-
-#### Now click:
-
-##### 🔑 Advanced… → SSH → Authentication
-
-- **Private key file:**
-
-Choose:
-
-```
-C:\Users\musta\Downloads\sftp-user-key.ppk
-```
-
-- **Click OK → Save.**
-
-- **Then click Login.**
-
-#### 🟢 If everything is correct → You will connect instantly.
-
-#### ❗ If it shows “Permission denied (publickey)”
-
-##### One of these is wrong:
-
-✔ The private key does not match the public key in AWS
-
-Check on EC2:
-
-```
-cat ~/sftp-user-key.pub
-```
-
-##### This MUST match the key in:
-
-- **AWS Transfer Family → Users → wpadmin → SSH Public Keys.**
-
-- **✔ The PPK file was generated from the wrong private key**
-
-##### You must convert the exact private key associated with that .pub.
-
-
-
-
-
-
-
-#### ➡️ Export a REAL OpenSSH key from WinSCP / PuTTYgen
-
-Since WinSCP can read your key, we will use it to export a valid OpenSSH key for PowerShell.
-
-#### ✅ Open your working key in PuTTYgen
-
-- Open PuTTYgen
-
-- Click Load
-
-- Change file type to All Files (*.*)
-
-- Select the key that WinSCP connected with (could be .ppk or your original file)
-
-#### ✅ Export an OpenSSH private key (this is the key PowerShell needs)
-
-##### Inside PuTTYgen:
-
-- **✔ Go to menu: Conversions → Export OpenSSH key**
-
-##### Save file as:
-
-```
-sftp-openssh
-```
-
-##### This file will contain the correct format:
-
-```
------BEGIN OPENSSH PRIVATE KEY-----
-...
------END OPENSSH PRIVATE KEY-----
-```
-
-##### PuTTYgen ensures:
-
-- No BOM
-
-- Correct LF endings
-
-- Valid OpenSSH structure
-
-- No corruption
-
-- No unusual wrapping
-
-#### ✅ Use this exported key with PowerShell SFTP
-
-```
-sftp -i "C:\Users\musta\Downloads\sftp-openssh" wpadmin@s-03b88312fec640798.server.transfer.us-east-1.amazonaws.com
-```
-
-This WILL connect successfully.
-
-#### 🎯 Why this fixes it
-
-- WinSCP can read multiple key formats → including PPK
-
-- PowerShell’s built-in OpenSSH client is strict → only reads exact OpenSSH format
-
-- Your current key file = valid for WinSCP but not valid OpenSSH formatting
-
-- Exporting via PuTTYgen converts it to 100% correct OpenSSH structure
 
 
 
@@ -1515,181 +1046,25 @@ This WILL connect successfully.
 
 ----
 
-###### If you want password login → I can provide Lambda-based password auth.
+# 🎉 All New Tasks Successfully Integrated Into the Main Lab
 
----
+## You now have:
 
-### Step 3 — Create AWS Transfer Family CONNECTOR
 
-##### This is the MOST IMPORTANT part.
 
-- **Go to: Transfer Family → Connectors → Create connector**
+### EC2 + EBS + User/Group Permission Management
 
-#### 1️⃣ Type:
+- **✔ Public EC2 with attached EBS**
 
-```
-S3
-```
+- **✔ Mounted and persistent file system**
 
-#### 2️⃣ S3 Bucket:
+- **✔ New Linux user & group**
 
+- **✔ Group-level permission control**
 
-```
-my-wp-media-bucket-123
-```
+- **✔ User added to the group**
 
-#### 3️⃣ IAM role:
-
-Create a new role if needed:
-
-```
-AWS-Transfer-S3ConnectorRole
-```
-
-##### Attach policy:
-
-```
-AmazonS3FullAccess
-```
-
-#### 4️⃣ Encryption (optional):
-
-```
-S3 Managed Keys (SSE-S3)
-```
-
-
-#### 5️⃣ Activation:
-
-```
-Enable the connector.
-```
-
----
-
-### Step 4 — Link Connector to User
-
-#### 1️⃣ Now: Transfer Family → Servers → Select your server → Users → Edit user → Add connector
-
-#### Choose:
-
-```
-S3 connector (the connector you created)
-```
-
-##### This makes AWS Transfer route:
-
-```
-SFTP uploads → Connector → S3 bucket
-```
-
----
-
-### Step 5 — Test SFTP Upload to S3
-
-#### 1️⃣ From any SFTP client:
-
-```
-sftp -i mykey.pem wpfileadmin@s-xxxxxxxxxxxx.server.transfer.us-east-1.amazonaws.com
-```
-
-#### Inside SFTP:
-
-```
-put testfile.jpg
-ls
-```
-
-##### Then check S3 → bucket → files should appear!
-
----
-
-### Step 6 — Connect WordPress to S3
-
-**Now we integrate WordPress on EC2 with S3 so WordPress uses S3 as storage.**
-
-#### 1️⃣ Install plugin:
-
-- **✔ “WP Offload Media Lite”**
-
-or
-
-- **✔ “Media Cloud”**
-
-##### Both support S3.
-
-#### 2️⃣ After activation → Configure:
-
-#### Bucket:
-
-```
-my-wp-media-bucket-123
-```
-
-- **✔ Region:** Your region
-
-- **✔ Path:** /uploads/
-
-#### 3️⃣ IAM role:
-
-**✔ “Add IAM Access for WordPress EC2”**
-
-#### IAM role attached to EC2 must include:
-
-```
-AmazonS3FullAccess
-```
-
-#### or minimal:
-
-```
-s3:PutObject
-s3:GetObject
-s3:DeleteObject
-s3:ListBucket
-```
-
-**✔ “Now ANY image uploaded in WordPress → S3.”**
-
-**✔ “ANY SFTP upload → S3.”**
-
-**📌 WordPress automatically reads S3 files.**
-
----
-
-## 🎉 RESULT: Full Enterprise Workflow
-
-- **✔ SFTP user uploads → S3**
-
-- **✔ WordPress accesses → S3**
-
-- **✔ EC2 does NOT store media**
-
-- **✔ Storage is scalable, secure, durable**
-
-- **✔ No OS to manage for SFTP**
-
-- **✔ Fully serverless + scalable**
-
-
----
-
-# 🔭 Section 4 — Infrastructure Test & Verification
-
-
-# 🟦 Section 1 —  Troubleshooting quick commands
-
-[Testing of Wordpress](./Troubleshooting.md)
-
-
-# 🟦 Section 2 —  Verification Tests
-
-Run these steps and record the outputs/screenshots.
-
-[Testing of Wordpress](./Testing%20Wordpress%20Website%20With%20EC2%20%26%20RDS.md)
-
-
-
+- **✔ Full integration with the main AWS architecture**
 
 
 
