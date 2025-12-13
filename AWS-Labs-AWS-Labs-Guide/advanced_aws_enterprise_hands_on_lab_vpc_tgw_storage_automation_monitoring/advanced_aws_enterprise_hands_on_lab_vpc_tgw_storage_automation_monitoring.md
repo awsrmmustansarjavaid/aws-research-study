@@ -456,10 +456,44 @@ sudo mount -t efs -o tls fs-12345678:/ /efsdata
 
 **📣 Replace fs-12345678 with your actual file system ID.**
 
-### 14.3 Persistent Mount
+### 14.3 Make EFS Persistent (Automatic Mounting)
+
+#### Edit the fstab file:
+
 ```
-fs-xxxx:/ /efsdata efs _netdev,tls 0 0
+sudo nano /etc/fstab
 ```
+
+#### Edit the fstab file:
+
+Add this line:
+
+```
+fs-12345678:/ /efsdata efs _netdev,tls 0 0
+```
+
+Save & exit.
+
+Test it:
+
+```
+sudo mount -a
+```
+
+### 14.4 Test EFS Shared Storage
+
+#### On EC2 instance:
+
+```
+sudo touch /efsdata/app-file.txt
+```
+
+```
+ls -l /efsdata
+```
+
+
+**🕛 If you mount EFS on multiple EC2 instances later, all will see the same file.**
 
 ---
 
@@ -580,3 +614,6 @@ You now understand and implemented:
 - **✔ User added to the group**
 
 - **✔ Full integration with the main AWS architecture**
+
+
+
