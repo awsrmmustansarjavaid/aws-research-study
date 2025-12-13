@@ -592,15 +592,203 @@ ls -l /efsdata
 ---
 
 ## 15. Lambda + EFS Automation (Scenario)
+
 ### Scenario
 Lambda scans files written to EFS and logs metadata to CloudWatch.
 
-### Steps
-- Name: - Name: advancedlab-secure-Lambda
+### 15.1 Create IAM Role 
+- **Name:** AWSLambdaVPCAccessExecutionRole
+
+- **Service:** Lambda
+
+##### Trust relationship (must be EXACT)
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+#### Attach IAM Policies with IAM role 
+
+##### Mandatory Managed Policies:
+
+```
+✔ AWSLambdaVPCAccessExecutionRole
+✔ AWSLambdaBasicExecutionRole
+✔ Custom Inline Policy
+```
+
+##### Custom Inline Policy (EFS Access – REQUIRED)
+
+**Managed policies do NOT cover EFS access. You must add a custom inline policy.**
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEFSMount",
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:ClientMount",
+        "elasticfilesystem:ClientWrite",
+        "elasticfilesystem:ClientRootAccess"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+**👉 This allows Lambda to:**
+
+- **✔ Mount EFS**
+
+- **✔ Write to EFS**
+
+- **✔ Use EFS access points**
+
+##### 💡 In production, you should restrict Resource to:
+
+```
+arn:aws:elasticfilesystem:region:account-id:file-system/fs-xxxx
+```
+
+### 15.2 VPC Configuration for Lambda (VERY IMPORTANT)
+
+
+- **Subnets:** Choose PRIVATE subnets
+
+###### Must be in same AZs as EFS mount targets
+
+#### Security Group (Lambda SG): 
+
+- **Inbound:** NONE
+
+- **Outbound:** TCP 2049 → EFS Security Group
+
+### 15.3 EFS Configuration (Required for Lambda)
+
+##### EFS must have:
+
+- **Mount target in each AZ used by Lambda**
+
+- **Security group allowing NFS**
+
+- **EFS Security Group – Inbound :**
+
+```
+Type: NFS
+Port: 2049
+Source: Lambda Security Group
+```
+
+### 15.4 EFS Access Point (BEST PRACTICE)
+
+- **Create Access Point**
+
+- **Path:** /lambda
+
+- **POSIX user:**
+
+```
+UID: 1000
+
+GID: 1000
+
+```
+
+- **Root directory permissions:**
+
+```
+Owner UID: 1000
+Owner GID: 1000
+Permissions: 750
+```
+
+**This avoids permission issues.**
+
+### 15.5 Create Lambda Function
+
+- Name: advancedlab-secure-Lambda
 - Create Lambda inside VPC
 - Attach EFS access point
-- Assign IAM role with:
-  - AWSLambdaVPCAccessExecutionRole
+
+
+### 15.6 Attach EFS to Lambda (THIS STEP IS OFTEN MISSED)
+
+- **In Lambda → Configuration → File system**
+
+- **File system:** AdvancedLabEFS
+
+- **Access point:** fsap-xxxx
+
+- **Local mount path:**
+
+```
+/mnt/efs
+```
+
+**✔ Lambda automatically mounts EFS here.**
+
+### 15.7 Lambda Code Example (Validation Test)
+
+**✔ Use this to prove everything works.**
+
+#### Python code
+
+```
+import os
+
+def lambda_handler(event, context):
+    path = "/mnt/efs/lambda-test.txt"
+
+    with open(path, "a") as f:
+        f.write("Lambda wrote to EFS successfully\n")
+
+    files = os.listdir("/mnt/efs")
+
+    return {
+        "statusCode": 200,
+        "message": "EFS write successful",
+        "files": files
+    }
+```
+
+### 15.8 Test & Validate (DO NOT SKIP)
+
+#### Invoke Lambda
+
+- **Test event → empty JSON {}**
+
+
+- **Check CloudWatch Logs**
+
+##### You should see:
+
+**✔ No permission errors**
+
+**✔ No mount errors**
+
+#### Verify from EC2
+
+##### On EC2 (mounted EFS):
+
+```
+cat /efs/lambda-test.txt
+```
+
+**✔ If file exists → Lambda ↔ EFS integration is SUCCESSFUL**
 
 ---
 
